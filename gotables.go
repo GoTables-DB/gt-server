@@ -1,15 +1,11 @@
 package gotables
 
-import (
-	"crypto/sha256"
-	"fmt"
-)
+import "crypto/sha512"
 
 type DB struct {
 	name    string
-	port    int
 	tables  []Table
-	dbusers map[string][32]byte
+	dbusers map[string][64]byte
 }
 
 type Table struct {
@@ -19,12 +15,10 @@ type Table struct {
 	table   []map[string]any
 }
 
-func InitDB(name string, adminUsername string, adminPassword string, port int) {
-	if port == 0 {
-		port = 5678
-	}
-	pwHash := sha256.Sum256([]byte(adminPassword))
-	db := DB{name: name, port: port}
+func InitDB(name string, adminUsername string, adminPassword string) error {
+	pwHash := sha512.Sum512([]byte(adminPassword))
+	db := DB{name: name, tables: make([]Table, 0), dbusers: make(map[string][64]byte)}
 	db.dbusers[adminUsername] = pwHash
-	fmt.Print(db)
+
+	return nil
 }
