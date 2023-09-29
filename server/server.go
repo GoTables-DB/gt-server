@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"strings"
 )
 
 const (
@@ -13,7 +14,18 @@ const (
 
 func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello, world!"))
+		url := r.URL.Path
+		if len(url) > 1 {
+			path := strings.Split(url, "/")
+			db := path[1]
+			if len(path) > 2 {
+				table := path[2]
+			} else {
+				// Print all available tables
+			}
+		} else {
+			// Print all available databases
+		}
 	})
 	log.Fatal(http.ListenAndServe(PORT, nil))
 	// log.Fatal(http.ListenAndServeTLS(PORT, CERT, KEY, nil))
