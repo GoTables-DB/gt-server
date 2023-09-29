@@ -1,4 +1,4 @@
-package gotables
+package data
 
 import "crypto/sha512"
 
