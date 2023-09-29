@@ -8,12 +8,6 @@ import (
 	"strings"
 )
 
-const (
-	PORT = ":5678"
-	// CERT = "cert.pem"
-	// KEY  = "key.pem"
-)
-
 func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		url := r.URL.Path
@@ -55,6 +49,6 @@ func main() {
 			}
 		}
 	})
-	log.Fatal(http.ListenAndServe(PORT, nil))
+	log.Fatal(http.ListenAndServe(config.port, nil))
 	// log.Fatal(http.ListenAndServeTLS(PORT, CERT, KEY, nil))
 }
