@@ -36,12 +36,12 @@ func NewDB(name string, adminUsername string, adminPassword string) error {
 }
 
 func GetDBs(dir string) ([]string, error) {
-	err, dbs := ls(dir)
+	dbs, err := ls(dir)
 	return dbs, err
 }
 
 func GetTables(db, dir string) ([]string, error) {
-	err, tables := ls(dir + "/" + db)
+	tables, err := ls(dir + "/" + db)
 	return tables, err
 }
 
@@ -58,7 +58,14 @@ func Config() (Conf, error) {
 	return config, nil
 }
 
-func ls(dir string) (error error, contents []string) {
-	// Print content of a directory
+func ls(dir string) (contents []string, error error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	contents = []string{}
+	for _, entry := range entries {
+		contents = append(contents, entry.Name())
+	}
 	return nil, nil
 }
