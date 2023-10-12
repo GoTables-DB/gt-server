@@ -46,7 +46,7 @@ func GetTables(db, dir string) ([]string, error) {
 }
 
 func Config() (Conf, error) {
-	confFile, fileErr := os.ReadFile("gotables.conf")
+	confFile, fileErr := os.ReadFile("gtconfig.json")
 	if fileErr != nil {
 		return Conf{}, fileErr
 	}
