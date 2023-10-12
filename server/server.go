@@ -33,16 +33,31 @@ func get(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 		path := strings.Split(url, "/")
 		db := path[1]
 		if len(path) > 2 {
-			// table := path[2]
+			table := path[2]
+			tbl, err, status404 := fs.GetTable(db, table, config.RootDir)
+			if err != nil {
+				log.Println(err)
+				if status404 {
+					w.WriteHeader(404)
+				} else {
+					w.WriteHeader(500)
+				}
+			} else {
+				respErr := sendJson(tbl, w)
+				if respErr != nil {
+					log.Println(respErr)
+					w.WriteHeader(500)
+				}
+			}
 		} else {
 			tables, tblErr := getTables(db, config.RootDir)
 			if tblErr != nil {
-				log.Print(tblErr)
-				w.WriteHeader(500)
+				log.Println(tblErr)
+				w.WriteHeader(404)
 			} else {
 				respErr := sendJson(tables, w)
 				if respErr != nil {
-					log.Print(respErr)
+					log.Println(respErr)
 					w.WriteHeader(500)
 				}
 			}
@@ -50,12 +65,12 @@ func get(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 	} else {
 		dbs, dbErr := getDBs(config.RootDir)
 		if dbErr != nil {
-			log.Print(dbErr)
+			log.Println(dbErr)
 			w.WriteHeader(500)
 		} else {
 			respErr := sendJson(dbs, w)
 			if respErr != nil {
-				log.Print(respErr)
+				log.Println(respErr)
 				w.WriteHeader(500)
 			}
 		}
@@ -63,11 +78,11 @@ func get(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 }
 
 func post(w http.ResponseWriter, r *http.Request, config fs.Conf) {
-
+	w.WriteHeader(405)
 }
 
 func del(w http.ResponseWriter, r *http.Request, config fs.Conf) {
-
+	w.WriteHeader(405)
 }
 
 func getDBs(dir string) ([]string, error) {
@@ -88,7 +103,7 @@ func getTables(db, dir string) ([]string, error) {
 	}
 }
 
-func sendJson(data []string, w http.ResponseWriter) error {
+func sendJson(data any, w http.ResponseWriter) error {
 	body, jsonErr := json.Marshal(data)
 	if jsonErr != nil {
 		return jsonErr

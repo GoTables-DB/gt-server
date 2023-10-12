@@ -45,6 +45,19 @@ func GetTables(db, dir string) ([]string, error) {
 	return tables, err
 }
 
+func GetTable(db, table, dir string) (Table, error, bool) {
+	tableFile, err := os.ReadFile(dir + "/" + db + "/" + table + ".json")
+	if err != nil {
+		return Table{}, err, true
+	}
+	tableData := Table{}
+	jsonErr := json.Unmarshal(tableFile, &tableData)
+	if jsonErr != nil {
+		return Table{}, jsonErr, false
+	}
+	return tableData, nil, false
+}
+
 func Config() (Conf, error) {
 	confFile, fileErr := os.ReadFile("gtconfig.json")
 	if fileErr != nil {
@@ -67,5 +80,5 @@ func ls(dir string) (contents []string, error error) {
 	for _, entry := range entries {
 		contents = append(contents, entry.Name())
 	}
-	return nil, nil
+	return contents, nil
 }
