@@ -9,7 +9,7 @@ import (
 func main() {
 	config, err := fs.Config()
 	if err != nil {
-		return
+		log.Fatal(err)
 	}
 	go server.Run(config)
 	if config.HTTPSMode {

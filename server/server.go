@@ -13,9 +13,9 @@ func Run(config fs.Conf) {
 		if r.Method == "GET" || r.Method == "" {
 			get(w, r, config)
 		} else if r.Method == "POST" {
-			// post(w, config)
+			post(w, r, config)
 		} else if r.Method == "DELETE" {
-			// delete(w, config)
+			del(w, r, config)
 		} else {
 			w.WriteHeader(405)
 		}
@@ -60,6 +60,14 @@ func get(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 			}
 		}
 	}
+}
+
+func post(w http.ResponseWriter, r *http.Request, config fs.Conf) {
+
+}
+
+func del(w http.ResponseWriter, r *http.Request, config fs.Conf) {
+
 }
 
 func getDBs(dir string) ([]string, error) {
