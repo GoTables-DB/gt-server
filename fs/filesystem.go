@@ -1,22 +1,24 @@
 package fs
 
 import (
-	"crypto/sha512"
 	"encoding/json"
 	"os"
+	"strings"
 )
 
+type allowedTypes interface {
+}
+
 type DB struct {
-	name    string
-	tables  []Table
-	dbusers map[string][64]byte
+	dbUsers map[string][64]byte
+	access  []map[string]int
 }
 
 type Table struct {
-	name    string
-	access  map[string]int
-	indexes []map[string]int
-	table   []map[string]any
+	columns  map[string]allowedTypes
+	rows     []map[string]any
+	defaults map[string]any
+	// indexes  []map[string]int
 }
 
 type Conf struct {
@@ -27,13 +29,15 @@ type Conf struct {
 	SSLKey    string `json:"ssl_key"`
 }
 
-func NewDB(name string, adminUsername string, adminPassword string) error {
-	pwHash := sha512.Sum512([]byte(adminPassword))
-	db := DB{name: name, tables: make([]Table, 0), dbusers: make(map[string][64]byte)}
-	db.dbusers[adminUsername] = pwHash
-
+/*
+func NewDB() error {
 	return nil
 }
+
+func NewTable() error {
+	return nil
+}
+*/
 
 func GetDBs(dir string) ([]string, error) {
 	dbs, err := ls(dir)
@@ -78,7 +82,9 @@ func ls(dir string) (contents []string, error error) {
 	}
 	contents = []string{}
 	for _, entry := range entries {
-		contents = append(contents, entry.Name())
+		if strings.HasSuffix(entry.Name(), ".json") {
+			contents = append(contents, strings.TrimSuffix(entry.Name(), ".json"))
+		}
 	}
 	return contents, nil
 }
