@@ -6,19 +6,15 @@ import (
 	"strings"
 )
 
-type allowedTypes interface {
-}
-
 type DB struct {
 	dbUsers map[string][64]byte
 	access  []map[string]int
 }
 
 type Table struct {
-	columns  map[string]allowedTypes
-	rows     []map[string]any
-	defaults map[string]any
-	// indexes  []map[string]int
+	Rows     []map[string]any `json:"rows"`
+	Defaults map[string]any   `json:"defaults"`
+	// indexes  []map[string]int `json:"indexes"`
 }
 
 type Conf struct {
@@ -82,9 +78,7 @@ func ls(dir string) (contents []string, error error) {
 	}
 	contents = []string{}
 	for _, entry := range entries {
-		if strings.HasSuffix(entry.Name(), ".json") {
-			contents = append(contents, strings.TrimSuffix(entry.Name(), ".json"))
-		}
+		contents = append(contents, strings.TrimSuffix(entry.Name(), ".json"))
 	}
 	return contents, nil
 }
