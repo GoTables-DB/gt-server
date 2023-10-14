@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"github.com/Jero075/gotables/fs"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -14,11 +15,13 @@ type Post struct {
 
 func Run(config fs.Conf) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" || r.Method == "" {
+		if r.Method == http.MethodGet {
 			get(w, r, config)
-		} else if r.Method == "POST" {
+		} else if r.Method == http.MethodHead {
+			head(w, r, config)
+		} else if r.Method == http.MethodPost {
 			post(w, r, config)
-		} else if r.Method == "DELETE" {
+		} else if r.Method == http.MethodDelete {
 			del(w, r, config)
 		} else {
 			w.WriteHeader(405)
@@ -78,8 +81,57 @@ func get(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 	}
 }
 
+func head(w http.ResponseWriter, r *http.Request, config fs.Conf) {
+
+}
+
 func post(w http.ResponseWriter, r *http.Request, config fs.Conf) {
-	w.WriteHeader(405)
+	if r.Header.Get("Content-Type") != "application/json" {
+		w.WriteHeader(415)
+		return
+	}
+	db, table := url(r)
+	body, err := io.ReadAll(r.Body)
+	if err != nil || len(body) < 2 {
+		log.Println(err)
+		w.WriteHeader(400)
+		return
+	}
+	bodyPost := Post{}
+	jsonErr := json.Unmarshal(body, &bodyPost)
+	if jsonErr != nil {
+		log.Println(jsonErr)
+		w.WriteHeader(500)
+		return
+	}
+	if db == "" {
+		if bodyPost.Name == "" {
+			w.WriteHeader(400)
+			return
+		}
+		fsErr := fs.NewDB(bodyPost.Name, config.RootDir)
+		if fsErr != nil {
+			log.Println(fsErr)
+			w.WriteHeader(500)
+			return
+		}
+		w.WriteHeader(201)
+	} else if table == "" {
+		if bodyPost.Name == "" {
+			w.WriteHeader(400)
+			return
+		}
+		dir := config.RootDir + "/" + db
+		fsErr := fs.NewTable(bodyPost.Name, dir)
+		if fsErr != nil {
+			log.Println(fsErr)
+			w.WriteHeader(404)
+			return
+		}
+		w.WriteHeader(201)
+	} else {
+		// TODO: Possibility to change and append content of table
+	}
 }
 
 func del(w http.ResponseWriter, r *http.Request, config fs.Conf) {
