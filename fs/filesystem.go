@@ -29,7 +29,17 @@ func NewDB(name string, dir string) error {
 	return nil
 }
 
-func NewTable() error {
+func NewTable(name string, dir string) error {
+	tblLocation := dir + "/" + name + ".json"
+	tbl := Table{}
+	data, jsonErr := json.Marshal(tbl)
+	if jsonErr != nil {
+		return jsonErr
+	}
+	fsErr := os.WriteFile(tblLocation, data, 0755)
+	if fsErr != nil {
+		return fsErr
+	}
 	return nil
 }
 
