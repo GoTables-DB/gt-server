@@ -6,11 +6,6 @@ import (
 	"strings"
 )
 
-type DB struct {
-	dbUsers map[string][64]byte
-	access  []map[string]int
-}
-
 type Table struct {
 	Rows     []map[string]any `json:"rows"`
 	Defaults map[string]any   `json:"defaults"`
@@ -25,15 +20,18 @@ type Conf struct {
 	SSLKey    string `json:"ssl_key"`
 }
 
-/*
-func NewDB() error {
+func NewDB(name string, dir string) error {
+	dbLocation := dir + "/" + name
+	err := os.Mkdir(dbLocation, 0755)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func NewTable() error {
 	return nil
 }
-*/
 
 func GetDBs(dir string) ([]string, error) {
 	dbs, err := ls(dir)
