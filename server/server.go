@@ -16,9 +16,9 @@ type Post struct {
 func Run(config fs.Conf) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			get(w, r, config)
+			get(w, r, config, false)
 		} else if r.Method == http.MethodHead {
-			head(w, r, config)
+			get(w, r, config, true)
 		} else if r.Method == http.MethodPost {
 			post(w, r, config)
 		} else if r.Method == http.MethodDelete {
@@ -34,7 +34,7 @@ func Run(config fs.Conf) {
 	}
 }
 
-func get(w http.ResponseWriter, r *http.Request, config fs.Conf) {
+func get(w http.ResponseWriter, r *http.Request, config fs.Conf, methodIsHead bool) {
 	db, table := url(r)
 	if db == "" {
 		dbs, dbErr := getDBs(config.RootDir)
@@ -42,7 +42,7 @@ func get(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 			log.Println(dbErr)
 			w.WriteHeader(500)
 		} else {
-			respErr := sendJson(dbs, w)
+			respErr := sendJson(dbs, w, methodIsHead)
 			if respErr != nil {
 				log.Println(respErr)
 				w.WriteHeader(500)
@@ -55,7 +55,7 @@ func get(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 				log.Println(tblErr)
 				w.WriteHeader(404)
 			} else {
-				respErr := sendJson(tables, w)
+				respErr := sendJson(tables, w, methodIsHead)
 				if respErr != nil {
 					log.Println(respErr)
 					w.WriteHeader(500)
@@ -71,7 +71,7 @@ func get(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 					w.WriteHeader(500)
 				}
 			} else {
-				respErr := sendJson(tbl, w)
+				respErr := sendJson(tbl, w, methodIsHead)
 				if respErr != nil {
 					log.Println(respErr)
 					w.WriteHeader(500)
@@ -79,10 +79,6 @@ func get(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 			}
 		}
 	}
-}
-
-func head(w http.ResponseWriter, r *http.Request, config fs.Conf) {
-
 }
 
 func post(w http.ResponseWriter, r *http.Request, config fs.Conf) {
@@ -179,10 +175,14 @@ func getTables(db, dir string) ([]string, error) {
 	}
 }
 
-func sendJson(data any, w http.ResponseWriter) error {
+func sendJson(data any, w http.ResponseWriter, methodIsHead bool) error {
 	body, jsonErr := json.Marshal(data)
 	if jsonErr != nil {
 		return jsonErr
+	}
+	if methodIsHead {
+		w.WriteHeader(200)
+		return nil
 	}
 	_, responseErr := w.Write(body)
 	if responseErr != nil {
