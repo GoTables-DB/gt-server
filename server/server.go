@@ -9,18 +9,20 @@ import (
 	"strings"
 )
 
-type Post struct {
+type PostBody struct {
 	Name string `json:"name"`
 }
 
 func Run(config fs.Conf) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			get(w, r, config, false)
+			get(w, r, config)
 		} else if r.Method == http.MethodHead {
-			get(w, r, config, true)
+			head(w, r, config)
 		} else if r.Method == http.MethodPost {
 			post(w, r, config)
+		} else if r.Method == http.MethodPut {
+			put(w, r, config)
 		} else if r.Method == http.MethodDelete {
 			del(w, r, config)
 		} else {
@@ -34,7 +36,7 @@ func Run(config fs.Conf) {
 	}
 }
 
-func get(w http.ResponseWriter, r *http.Request, config fs.Conf, methodIsHead bool) {
+func get(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 	db, table := url(r)
 	if db == "" {
 		dbs, dbErr := getDBs(config.RootDir)
@@ -42,7 +44,7 @@ func get(w http.ResponseWriter, r *http.Request, config fs.Conf, methodIsHead bo
 			log.Println(dbErr)
 			w.WriteHeader(500)
 		} else {
-			respErr := sendJson(dbs, w, methodIsHead)
+			respErr := sendJson(dbs, w)
 			if respErr != nil {
 				log.Println(respErr)
 				w.WriteHeader(500)
@@ -55,7 +57,7 @@ func get(w http.ResponseWriter, r *http.Request, config fs.Conf, methodIsHead bo
 				log.Println(tblErr)
 				w.WriteHeader(404)
 			} else {
-				respErr := sendJson(tables, w, methodIsHead)
+				respErr := sendJson(tables, w)
 				if respErr != nil {
 					log.Println(respErr)
 					w.WriteHeader(500)
@@ -71,11 +73,46 @@ func get(w http.ResponseWriter, r *http.Request, config fs.Conf, methodIsHead bo
 					w.WriteHeader(500)
 				}
 			} else {
-				respErr := sendJson(tbl, w, methodIsHead)
+				respErr := sendJson(tbl, w)
 				if respErr != nil {
 					log.Println(respErr)
 					w.WriteHeader(500)
 				}
+			}
+		}
+	}
+}
+
+func head(w http.ResponseWriter, r *http.Request, config fs.Conf) {
+	db, table := url(r)
+	if db == "" {
+		_, dbErr := getDBs(config.RootDir)
+		if dbErr != nil {
+			log.Println(dbErr)
+			w.WriteHeader(500)
+		} else {
+			w.WriteHeader(200)
+		}
+	} else {
+		if table == "" {
+			_, tblErr := getTables(db, config.RootDir)
+			if tblErr != nil {
+				log.Println(tblErr)
+				w.WriteHeader(404)
+			} else {
+				w.WriteHeader(200)
+			}
+		} else {
+			_, err, status404 := fs.GetTable(db, table, config.RootDir)
+			if err != nil {
+				log.Println(err)
+				if status404 {
+					w.WriteHeader(404)
+				} else {
+					w.WriteHeader(500)
+				}
+			} else {
+				w.WriteHeader(200)
 			}
 		}
 	}
@@ -93,19 +130,19 @@ func post(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 		w.WriteHeader(400)
 		return
 	}
-	bodyPost := Post{}
-	jsonErr := json.Unmarshal(body, &bodyPost)
+	postBody := PostBody{}
+	jsonErr := json.Unmarshal(body, &postBody)
 	if jsonErr != nil {
 		log.Println(jsonErr)
 		w.WriteHeader(500)
 		return
 	}
 	if db == "" {
-		if bodyPost.Name == "" {
+		if postBody.Name == "" {
 			w.WriteHeader(400)
 			return
 		}
-		fsErr := fs.NewDB(bodyPost.Name, config.RootDir)
+		fsErr := fs.NewDB(postBody.Name, config.RootDir)
 		if fsErr != nil {
 			log.Println(fsErr)
 			w.WriteHeader(500)
@@ -113,12 +150,12 @@ func post(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 		}
 		w.WriteHeader(201)
 	} else if table == "" {
-		if bodyPost.Name == "" {
+		if postBody.Name == "" {
 			w.WriteHeader(400)
 			return
 		}
 		dir := config.RootDir + "/" + db
-		fsErr := fs.NewTable(bodyPost.Name, dir)
+		fsErr := fs.NewTable(postBody.Name, dir)
 		if fsErr != nil {
 			log.Println(fsErr)
 			w.WriteHeader(404)
@@ -126,8 +163,12 @@ func post(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 		}
 		w.WriteHeader(201)
 	} else {
-		// TODO: Possibility to change and append content of table
+		// TODO: Possibility to append content to table
 	}
+}
+
+func put(w http.ResponseWriter, r *http.Request, config fs.Conf) {
+	w.WriteHeader(405)
 }
 
 func del(w http.ResponseWriter, r *http.Request, config fs.Conf) {
@@ -175,14 +216,10 @@ func getTables(db, dir string) ([]string, error) {
 	}
 }
 
-func sendJson(data any, w http.ResponseWriter, methodIsHead bool) error {
+func sendJson(data any, w http.ResponseWriter) error {
 	body, jsonErr := json.Marshal(data)
 	if jsonErr != nil {
 		return jsonErr
-	}
-	if methodIsHead {
-		w.WriteHeader(200)
-		return nil
 	}
 	_, responseErr := w.Write(body)
 	if responseErr != nil {
