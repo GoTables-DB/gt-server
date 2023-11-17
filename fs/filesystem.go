@@ -7,14 +7,13 @@ import (
 )
 
 type Table struct {
-	Rows     []map[string]any `json:"rows"`
-	Defaults map[string]any   `json:"defaults"`
-	// indexes  []map[string]int `json:"indexes"`
+	Rows     [][]any        `json:"rows"`
+	Defaults map[string]any `json:"defaults"`
 }
 
 type Conf struct {
 	Port      string `json:"port"`
-	RootDir   string `json:"root_dir"`
+	Dir       string `json:"dir"`
 	HTTPSMode bool   `json:"https_mode"`
 	SSLCert   string `json:"ssl_cert"`
 	SSLKey    string `json:"ssl_key"`
@@ -29,9 +28,9 @@ func NewDB(name string, dir string) error {
 	return nil
 }
 
-func NewTable(name string, dir string) error {
+func NewTable(name string, dir string, rowLen int) error {
 	tblLocation := dir + "/" + name + ".json"
-	tbl := Table{}
+	tbl := Table{Rows: make([][]any, rowLen)}
 	data, jsonErr := json.Marshal(tbl)
 	if jsonErr != nil {
 		return jsonErr

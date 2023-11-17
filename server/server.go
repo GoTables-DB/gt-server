@@ -13,6 +13,11 @@ type PostBody struct {
 	Name string `json:"name"`
 }
 
+type PutBody struct {
+	Name        string `json:"name"`
+	CellsPerRow int    `json:"row_length"`
+}
+
 func Run(config fs.Conf) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
@@ -39,7 +44,7 @@ func Run(config fs.Conf) {
 func get(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 	db, table := url(r)
 	if db == "" {
-		dbs, dbErr := getDBs(config.RootDir)
+		dbs, dbErr := getDBs(config.Dir)
 		if dbErr != nil {
 			log.Println(dbErr)
 			w.WriteHeader(500)
@@ -50,34 +55,32 @@ func get(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 				w.WriteHeader(500)
 			}
 		}
+	} else if table == "" {
+		tables, tblErr := getTables(db, config.Dir)
+		if tblErr != nil {
+			log.Println(tblErr)
+			w.WriteHeader(404)
+		} else {
+			respErr := sendJson(tables, w)
+			if respErr != nil {
+				log.Println(respErr)
+				w.WriteHeader(500)
+			}
+		}
 	} else {
-		if table == "" {
-			tables, tblErr := getTables(db, config.RootDir)
-			if tblErr != nil {
-				log.Println(tblErr)
+		tbl, err, status404 := fs.GetTable(db, table, config.Dir)
+		if err != nil {
+			log.Println(err)
+			if status404 {
 				w.WriteHeader(404)
 			} else {
-				respErr := sendJson(tables, w)
-				if respErr != nil {
-					log.Println(respErr)
-					w.WriteHeader(500)
-				}
+				w.WriteHeader(500)
 			}
 		} else {
-			tbl, err, status404 := fs.GetTable(db, table, config.RootDir)
-			if err != nil {
-				log.Println(err)
-				if status404 {
-					w.WriteHeader(404)
-				} else {
-					w.WriteHeader(500)
-				}
-			} else {
-				respErr := sendJson(tbl, w)
-				if respErr != nil {
-					log.Println(respErr)
-					w.WriteHeader(500)
-				}
+			respErr := sendJson(tbl, w)
+			if respErr != nil {
+				log.Println(respErr)
+				w.WriteHeader(500)
 			}
 		}
 	}
@@ -86,34 +89,32 @@ func get(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 func head(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 	db, table := url(r)
 	if db == "" {
-		_, dbErr := getDBs(config.RootDir)
+		_, dbErr := getDBs(config.Dir)
 		if dbErr != nil {
 			log.Println(dbErr)
 			w.WriteHeader(500)
 		} else {
 			w.WriteHeader(200)
 		}
+	} else if table == "" {
+		_, tblErr := getTables(db, config.Dir)
+		if tblErr != nil {
+			log.Println(tblErr)
+			w.WriteHeader(500)
+		} else {
+			w.WriteHeader(200)
+		}
 	} else {
-		if table == "" {
-			_, tblErr := getTables(db, config.RootDir)
-			if tblErr != nil {
-				log.Println(tblErr)
+		_, err, status404 := fs.GetTable(db, table, config.Dir)
+		if err != nil {
+			log.Println(err)
+			if status404 {
 				w.WriteHeader(404)
 			} else {
-				w.WriteHeader(200)
+				w.WriteHeader(500)
 			}
 		} else {
-			_, err, status404 := fs.GetTable(db, table, config.RootDir)
-			if err != nil {
-				log.Println(err)
-				if status404 {
-					w.WriteHeader(404)
-				} else {
-					w.WriteHeader(500)
-				}
-			} else {
-				w.WriteHeader(200)
-			}
+			w.WriteHeader(200)
 		}
 	}
 }
@@ -137,38 +138,60 @@ func post(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 		w.WriteHeader(500)
 		return
 	}
-	if db == "" {
-		if postBody.Name == "" {
-			w.WriteHeader(400)
-			return
-		}
-		fsErr := fs.NewDB(postBody.Name, config.RootDir)
-		if fsErr != nil {
-			log.Println(fsErr)
-			w.WriteHeader(500)
-			return
-		}
-		w.WriteHeader(201)
-	} else if table == "" {
-		if postBody.Name == "" {
-			w.WriteHeader(400)
-			return
-		}
-		dir := config.RootDir + "/" + db
-		fsErr := fs.NewTable(postBody.Name, dir)
-		if fsErr != nil {
-			log.Println(fsErr)
-			w.WriteHeader(404)
-			return
-		}
-		w.WriteHeader(201)
+	if db == "" || table == "" {
+		w.WriteHeader(400)
 	} else {
 		// TODO: Possibility to append content to table
 	}
 }
 
 func put(w http.ResponseWriter, r *http.Request, config fs.Conf) {
-	w.WriteHeader(405)
+	if r.Header.Get("Content-Type") != "application/json" {
+		w.WriteHeader(415)
+		return
+	}
+	db, table := url(r)
+	body, err := io.ReadAll(r.Body)
+	if err != nil || len(body) < 2 {
+		log.Println(err)
+		w.WriteHeader(400)
+		return
+	}
+	putBody := PutBody{}
+	jsonErr := json.Unmarshal(body, &putBody)
+	if jsonErr != nil {
+		log.Println(jsonErr)
+		w.WriteHeader(500)
+		return
+	}
+	if db == "" {
+		if putBody.Name == "" {
+			w.WriteHeader(400)
+			return
+		}
+		fsErr := fs.NewDB(putBody.Name, config.Dir)
+		if fsErr != nil {
+			log.Println(fsErr)
+			w.WriteHeader(500)
+			return
+		}
+	} else if table == "" {
+		if putBody.Name == "" {
+			w.WriteHeader(400)
+			return
+		}
+		dir := config.Dir + "/" + db
+		fsErr := fs.NewTable(putBody.Name, dir, putBody.CellsPerRow)
+		if fsErr != nil {
+			log.Println(fsErr)
+			w.WriteHeader(500)
+			return
+		}
+	} else {
+		w.WriteHeader(400)
+		return
+	}
+	w.WriteHeader(201)
 }
 
 func del(w http.ResponseWriter, r *http.Request, config fs.Conf) {
