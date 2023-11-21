@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -21,9 +22,9 @@ type PutBody struct {
 func Run(config fs.Conf) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			get(w, r, config)
+			get(w, r, config, true)
 		} else if r.Method == http.MethodHead {
-			head(w, r, config)
+			get(w, r, config, false)
 		} else if r.Method == http.MethodPost {
 			post(w, r, config)
 		} else if r.Method == http.MethodPut {
@@ -41,7 +42,7 @@ func Run(config fs.Conf) {
 	}
 }
 
-func get(w http.ResponseWriter, r *http.Request, config fs.Conf) {
+func get(w http.ResponseWriter, r *http.Request, config fs.Conf, withBody bool) {
 	db, table := url(r)
 	if db == "" {
 		dbs, dbErr := getDBs(config.Dir)
@@ -49,7 +50,7 @@ func get(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 			log.Println(dbErr)
 			w.WriteHeader(500)
 		} else {
-			respErr := sendJson(dbs, w)
+			respErr := sendJson(dbs, w, withBody)
 			if respErr != nil {
 				log.Println(respErr)
 				w.WriteHeader(500)
@@ -61,7 +62,7 @@ func get(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 			log.Println(tblErr)
 			w.WriteHeader(404)
 		} else {
-			respErr := sendJson(tables, w)
+			respErr := sendJson(tables, w, withBody)
 			if respErr != nil {
 				log.Println(respErr)
 				w.WriteHeader(500)
@@ -77,44 +78,11 @@ func get(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 				w.WriteHeader(500)
 			}
 		} else {
-			respErr := sendJson(tbl, w)
+			respErr := sendJson(tbl, w, withBody)
 			if respErr != nil {
 				log.Println(respErr)
 				w.WriteHeader(500)
 			}
-		}
-	}
-}
-
-func head(w http.ResponseWriter, r *http.Request, config fs.Conf) {
-	db, table := url(r)
-	if db == "" {
-		_, dbErr := getDBs(config.Dir)
-		if dbErr != nil {
-			log.Println(dbErr)
-			w.WriteHeader(500)
-		} else {
-			w.WriteHeader(200)
-		}
-	} else if table == "" {
-		_, tblErr := getTables(db, config.Dir)
-		if tblErr != nil {
-			log.Println(tblErr)
-			w.WriteHeader(500)
-		} else {
-			w.WriteHeader(200)
-		}
-	} else {
-		_, err, status404 := fs.GetTable(db, table, config.Dir)
-		if err != nil {
-			log.Println(err)
-			if status404 {
-				w.WriteHeader(404)
-			} else {
-				w.WriteHeader(500)
-			}
-		} else {
-			w.WriteHeader(200)
 		}
 	}
 }
@@ -239,14 +207,20 @@ func getTables(db, dir string) ([]string, error) {
 	}
 }
 
-func sendJson(data any, w http.ResponseWriter) error {
+func sendJson(data any, w http.ResponseWriter, withBody bool) error {
 	body, jsonErr := json.Marshal(data)
 	if jsonErr != nil {
 		return jsonErr
 	}
-	_, responseErr := w.Write(body)
-	if responseErr != nil {
-		return responseErr
+	if withBody {
+		_, responseErr := w.Write(body)
+		if responseErr != nil {
+			return responseErr
+		}
+	} else {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+		w.WriteHeader(200)
 	}
 	return nil
 }
