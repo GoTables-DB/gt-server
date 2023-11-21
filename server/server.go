@@ -213,6 +213,7 @@ func sendJson(data any, w http.ResponseWriter, withBody bool) error {
 		return jsonErr
 	}
 	if withBody {
+		w.Header().Set("Content-Type", "application/json")
 		_, responseErr := w.Write(body)
 		if responseErr != nil {
 			return responseErr
