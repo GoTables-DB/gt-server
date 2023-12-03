@@ -1,6 +1,6 @@
 package operations
 
-import "github.com/Jero075/gotables/fs"
+import "git.jereileu.ch/gotables/server/gt-server/fs"
 
 /// Incoming requests ///
 

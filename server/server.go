@@ -2,7 +2,7 @@ package server
 
 import (
 	"encoding/json"
-	"github.com/Jero075/gotables/fs"
+	"git.jereileu.ch/gotables/server/gt-server/fs"
 	"io"
 	"log"
 	"net/http"

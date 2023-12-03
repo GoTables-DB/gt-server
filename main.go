@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/Jero075/gotables/fs"
-	"github.com/Jero075/gotables/server"
+	"git.jereileu.ch/gotables/server/gt-server/fs"
+	"git.jereileu.ch/gotables/server/gt-server/server"
 	"log"
 )
 
