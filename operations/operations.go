@@ -22,4 +22,87 @@ func ExecFunc(table fs.Table, operation string) fs.Table {
 	return fs.Table{}
 }
 
-/// Operations on tables ///
+// / Operations on tables ///
+func login() {
+
+}
+
+func logout() {
+
+}
+
+func selectDB() {
+
+}
+
+func selectTable() {
+
+}
+
+func selectRows() {
+
+}
+
+func selectColumns() {
+
+}
+
+func modifyDB() {
+
+}
+
+func modifyTable() {
+
+}
+
+func modifyRow() {
+
+}
+
+func modifyColumn() {
+
+}
+
+func addDB() {
+
+}
+
+func addTable() {
+
+}
+
+func addRow() {
+
+}
+
+func addColumn() {
+
+}
+
+func deleteDB() {
+
+}
+
+func deleteTable() {
+
+}
+
+func deleteRow() {
+
+}
+
+func deleteColumn() {
+
+}
+
+func addUser() {
+
+}
+
+func modifyUser() {
+
+}
+
+func deleteUser() {
+
+}
