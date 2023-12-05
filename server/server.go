@@ -69,10 +69,10 @@ func get(w http.ResponseWriter, r *http.Request, config fs.Conf, withBody bool) 
 			}
 		}
 	} else {
-		tbl, err, status404 := fs.GetTable(db, table, config.Dir)
+		tbl, err := fs.GetTable(db, table, config.Dir)
 		if err != nil {
 			log.Println(err)
-			if status404 {
+			if err.Error() == "table not found" {
 				w.WriteHeader(404)
 			} else {
 				w.WriteHeader(500)

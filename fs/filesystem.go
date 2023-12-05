@@ -2,6 +2,7 @@ package fs
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"strings"
 )
@@ -12,11 +13,14 @@ type Table struct {
 }
 
 type Conf struct {
-	Port      string `json:"port"`
-	Dir       string `json:"dir"`
-	HTTPSMode bool   `json:"https_mode"`
-	SSLCert   string `json:"ssl_cert"`
-	SSLKey    string `json:"ssl_key"`
+	Port            string `json:"port"`
+	Dir             string `json:"dir"`
+	HTTPSMode       bool   `json:"https_mode"`
+	SSLCert         string `json:"ssl_cert"`
+	SSLKey          string `json:"ssl_key"`
+	EnableGTSyntax  bool   `json:"enable_gt_syntax"`
+	EnableSQLSyntax bool   `json:"enable_sql_syntax"`
+	EnableGoSyntax  bool   `json:"enable_go_syntax"`
 }
 
 func NewDB(name string, dir string) error {
@@ -52,17 +56,20 @@ func GetTables(db, dir string) ([]string, error) {
 	return tables, err
 }
 
-func GetTable(db, table, dir string) (Table, error, bool) {
+func GetTable(db, table, dir string) (Table, error) {
+	if table == "" {
+		return Table{}, errors.New("no table specified")
+	}
 	tableFile, err := os.ReadFile(dir + "/" + db + "/" + table + ".json")
 	if err != nil {
-		return Table{}, err, true
+		return Table{}, errors.New("table not found")
 	}
 	tableData := Table{}
 	jsonErr := json.Unmarshal(tableFile, &tableData)
 	if jsonErr != nil {
-		return Table{}, jsonErr, false
+		return Table{}, jsonErr
 	}
-	return tableData, nil, false
+	return tableData, nil
 }
 
 func Config() (Conf, error) {
