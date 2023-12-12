@@ -149,7 +149,7 @@ func put(w http.ResponseWriter, r *http.Request, config fs.Conf) {
 			return
 		}
 		dir := config.Dir + "/" + db
-		fsErr := fs.NewTable(putBody.Name, dir, putBody.CellsPerRow)
+		fsErr := fs.NewTable(putBody.Name, dir)
 		if fsErr != nil {
 			log.Println(fsErr)
 			w.WriteHeader(500)

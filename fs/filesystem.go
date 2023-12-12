@@ -7,9 +7,14 @@ import (
 	"strings"
 )
 
+type Column struct {
+	Name string `json:"name"`
+	Type any    `json:"type"` // Any value of a specific datatype. reflect.TypeOf() to get the type.
+}
+
 type Table struct {
-	Rows     [][]any        `json:"rows"`
-	Defaults map[string]any `json:"defaults"`
+	ColumnNames []Column        `json:"column_names"`
+	Rows        [][]interface{} `json:"rows"` // Row 1 for defaults
 }
 
 type Conf struct {
@@ -18,9 +23,8 @@ type Conf struct {
 	HTTPSMode       bool   `json:"https_mode"`
 	SSLCert         string `json:"ssl_cert"`
 	SSLKey          string `json:"ssl_key"`
-	EnableGTSyntax  bool   `json:"enable_gt_syntax"`
-	EnableSQLSyntax bool   `json:"enable_sql_syntax"`
-	EnableGoSyntax  bool   `json:"enable_go_syntax"`
+	EnableGTSyntax  bool   `json:"gt_syntax"`
+	EnableSQLSyntax bool   `json:"sql_syntax"`
 }
 
 func NewDB(name string, dir string) error {
@@ -32,9 +36,9 @@ func NewDB(name string, dir string) error {
 	return nil
 }
 
-func NewTable(name string, dir string, rowLen int) error {
+func NewTable(name string, dir string) error {
 	tblLocation := dir + "/" + name + ".json"
-	tbl := Table{Rows: make([][]any, rowLen)}
+	tbl := Table{}
 	data, jsonErr := json.Marshal(tbl)
 	if jsonErr != nil {
 		return jsonErr

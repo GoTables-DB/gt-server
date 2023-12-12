@@ -26,15 +26,6 @@ func SQLsyntax(table fs.Table, operation string, config fs.Conf) (fs.Table, erro
 	return fs.Table{}, errors.New("sql syntax is disabled on the server")
 }
 
-// Handle requests that use go syntax to directly use functions
-
-func GoSyntax(table fs.Table, operation string, config fs.Conf) (fs.Table, error) {
-	if config.EnableGoSyntax {
-		return fs.Table{}, nil
-	}
-	return fs.Table{}, errors.New("go syntax is disabled on the server")
-}
-
 // / Operations on tables ///
 func login() {
 
@@ -77,8 +68,25 @@ func selectRows() {
 
 }
 
-func selectColumns() {
-
+func selectColumns(columnNames []string, table fs.Table) ([]int, error) {
+	if len(columnNames) == 0 {
+		return nil, errors.New("no columns specified")
+	}
+	indexes := make([]int, 0)
+	for _, columnName := range columnNames {
+		if columnName == "*" {
+			for i := 0; i < len(table.ColumnNames); i++ {
+				indexes = append(indexes, i)
+			}
+			return indexes, nil
+		}
+		for i, column := range table.ColumnNames {
+			if columnName == column.Name {
+				indexes = append(indexes, i)
+			}
+		}
+	}
+	return indexes, nil
 }
 
 func modifyDB() {
@@ -139,4 +147,33 @@ func modifyUser() {
 
 func deleteUser() {
 
+}
+
+func makeTable(columnIndexes []int, rowIndexes []int, table fs.Table) fs.Table {
+	retTable := fs.Table{}
+	if len(columnIndexes) == 0 {
+		return fs.Table{}
+	}
+	retTable.ColumnNames = make([]fs.Column, len(table.ColumnNames))
+	for i, column := range table.ColumnNames {
+		if column.Name == "*" {
+			retTable.ColumnNames = table.ColumnNames
+			break
+		}
+		retTable.ColumnNames[i].Name = column.Name
+		retTable.ColumnNames[i].Type = column.Type
+	}
+	if len(rowIndexes) == 0 {
+		return fs.Table{
+			ColumnNames: retTable.ColumnNames,
+			Rows:        nil,
+		}
+	}
+	for i := range rowIndexes {
+		retTable.Rows = append(retTable.Rows, make([]interface{}, len(columnIndexes)))
+		for j := range columnIndexes {
+			retTable.Rows[i] = append(retTable.Rows[i], table.Rows[i][j])
+		}
+	}
+	return retTable
 }
