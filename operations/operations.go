@@ -3,30 +3,85 @@ package operations
 import (
 	"errors"
 	"git.jereileu.ch/gotables/server/gt-server/fs"
+	"git.jereileu.ch/gotables/server/gt-server/operations/delete"
+	"git.jereileu.ch/gotables/server/gt-server/operations/get"
+	"git.jereileu.ch/gotables/server/gt-server/operations/post"
+	"git.jereileu.ch/gotables/server/gt-server/operations/put"
 	"log"
+	"net/http"
+	"strings"
 )
 
 /// Incoming requests ///
 
 // Handle requests that use GoTables syntax
 
-func GTSyntax(table fs.Table, operation string, config fs.Conf) (fs.Table, error) {
-	if config.EnableGTSyntax {
-		return fs.Table{}, nil
+func GTSyntax(method string, dir string, query string, config fs.Conf) (fs.Table, error) {
+	if !config.EnableGTSyntax {
+		return fs.Table{}, errors.New("gotables syntax is disabled on the server")
 	}
-	return fs.Table{}, errors.New("gotables syntax is disabled on the server")
+	query = strings.TrimSpace(query)
+	querySlice := strings.Split(query, " ")
+	db, table, err := dirSplit(dir)
+	if err != nil {
+		return fs.Table{}, err
+	}
+	retTable, retError := gtQuery(method, querySlice, db, table, config)
+	return retTable, retError
 }
 
 // Handle requests that use SQL syntax
 
-func SQLsyntax(table fs.Table, operation string, config fs.Conf) (fs.Table, error) {
+func SQLSyntax(method string, dir string, query string, config fs.Conf) (fs.Table, error) {
 	if config.EnableSQLSyntax {
 		return fs.Table{}, nil
 	}
 	return fs.Table{}, errors.New("sql syntax is disabled on the server")
 }
 
-// / Operations on tables ///
+// / Request operations ///
+func dirSplit(dir string) (string, string, error) {
+	dir = strings.TrimPrefix(dir, "/")
+	dir = strings.TrimSuffix(dir, "/")
+	dirSlice := strings.Split(dir, "/")
+	db := ""
+	table := ""
+	if len(dirSlice) == 0 {
+		return "", "", errors.New("no database specified")
+	} else if len(dirSlice) > 2 {
+		return "", "", errors.New("path too long")
+	} else if len(dirSlice) == 1 {
+		db = dirSlice[0]
+	} else {
+		db = dirSlice[0]
+		table = dirSlice[1]
+	}
+	if db == "" {
+		return "", "", errors.New("no database specified")
+	}
+	return db, table, nil
+}
+
+func gtQuery(method string, query []string, db string, table string, config fs.Conf) (fs.Table, error) {
+	if len(query) == 0 {
+		return fs.Table{}, errors.New("empty query")
+	}
+	retTable := fs.Table{}
+	if method == http.MethodGet || method == http.MethodHead {
+		get.Get(method, db, table, config)
+	} else if method == http.MethodPut {
+		put.Put(db, table)
+	} else if method == http.MethodPost {
+		post.Post()
+	} else if method == http.MethodDelete {
+		del.Del()
+	} else {
+		return fs.Table{}, errors.New("invalid method")
+	}
+	return retTable, nil
+}
+
+// / Operations on db/tables ///
 func login() {
 
 }
@@ -105,11 +160,11 @@ func modifyColumn() {
 
 }
 
-func addDB() {
+func AddDB() {
 
 }
 
-func addTable() {
+func AddTable() {
 
 }
 

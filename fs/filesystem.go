@@ -18,13 +18,19 @@ type Table struct {
 }
 
 type Conf struct {
-	Port            string `json:"port"`
-	Dir             string `json:"dir"`
-	HTTPSMode       bool   `json:"https_mode"`
-	SSLCert         string `json:"ssl_cert"`
-	SSLKey          string `json:"ssl_key"`
-	EnableGTSyntax  bool   `json:"gt_syntax"`
-	EnableSQLSyntax bool   `json:"sql_syntax"`
+	// Basic config
+	Port string `json:"port"`
+	Dir  string `json:"dir"`
+	// HTTPS config
+	HTTPSMode bool   `json:"https"`
+	SSLCert   string `json:"cert"`
+	SSLKey    string `json:"key"`
+	// Query config
+	EnableGTSyntax  bool `json:"gt_syntax"`
+	EnableSQLSyntax bool `json:"sql_syntax"`
+	// Advanced config
+	// ConnectionTimeout int 'json:"conn_timeout"`
+	// MaxConnections int `json:"conn_max"`
 }
 
 func NewDB(name string, dir string) error {
@@ -77,11 +83,18 @@ func GetTable(db, table, dir string) (Table, error) {
 }
 
 func Config() (Conf, error) {
+	// Defaults
+	config := Conf{
+		Port:            ":5678",
+		Dir:             "/srv/gotables",
+		EnableGTSyntax:  true,
+		EnableSQLSyntax: true,
+	}
+
 	confFile, fileErr := os.ReadFile("gtconfig.json")
 	if fileErr != nil {
 		return Conf{}, fileErr
 	}
-	config := Conf{}
 	jsonErr := json.Unmarshal(confFile, &config)
 	if jsonErr != nil {
 		return Conf{}, jsonErr

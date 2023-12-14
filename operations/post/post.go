@@ -1,0 +1,5 @@
+package post
+
+func Post() {
+
+}
