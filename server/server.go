@@ -3,11 +3,10 @@ package server
 import (
 	"encoding/json"
 	"git.jereileu.ch/gotables/server/gt-server/fs"
-	"io"
+	"git.jereileu.ch/gotables/server/gt-server/operations"
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 )
 
 type PostBody struct {
@@ -22,15 +21,25 @@ type PutBody struct {
 func Run(config fs.Conf) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			get(w, r, config, true)
+			table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.RawQuery, config)
+			get(w, table, err)
 		} else if r.Method == http.MethodHead {
-			get(w, r, config, false)
+			table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.RawQuery, config)
+			head(w, table, err)
 		} else if r.Method == http.MethodPost {
-			post(w, r, config)
+			if checkSyntaxSQL(r) {
+				table, err := operations.SQLSyntax(r.Method, r.URL.Path, r.URL.RawQuery, config)
+				post(w, table, err)
+			} else {
+				table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.RawQuery, config)
+				post(w, table, err)
+			}
 		} else if r.Method == http.MethodPut {
-			put(w, r, config)
+			table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.RawQuery, config)
+			put(w, table, err)
 		} else if r.Method == http.MethodDelete {
-			del(w, r, config)
+			table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.RawQuery, config)
+			del(w, table, err)
 		} else {
 			w.WriteHeader(405)
 		}
@@ -42,169 +51,81 @@ func Run(config fs.Conf) {
 	}
 }
 
-func get(w http.ResponseWriter, r *http.Request, config fs.Conf, withBody bool) {
-	db, table := url(r)
-	if db == "" {
-		dbs, dbErr := getDBs(config.Dir)
-		if dbErr != nil {
-			log.Println(dbErr)
-			w.WriteHeader(500)
-		} else {
-			respErr := sendJson(dbs, w, withBody)
-			if respErr != nil {
-				log.Println(respErr)
-				w.WriteHeader(500)
-			}
-		}
-	} else if table == "" {
-		tables, tblErr := getTables(db, config.Dir)
-		if tblErr != nil {
-			log.Println(tblErr)
-			w.WriteHeader(404)
-		} else {
-			respErr := sendJson(tables, w, withBody)
-			if respErr != nil {
-				log.Println(respErr)
-				w.WriteHeader(500)
-			}
-		}
-	} else {
-		tbl, err := fs.GetTable(db, table, config.Dir)
-		if err != nil {
-			log.Println(err)
-			if err.Error() == "table not found" {
-				w.WriteHeader(404)
-			} else {
-				w.WriteHeader(500)
-			}
-		} else {
-			respErr := sendJson(tbl, w, withBody)
-			if respErr != nil {
-				log.Println(respErr)
-				w.WriteHeader(500)
-			}
-		}
-	}
-}
-
-func post(w http.ResponseWriter, r *http.Request, config fs.Conf) {
-	if r.Header.Get("Content-Type") != "application/json" {
-		w.WriteHeader(415)
-		return
-	}
-	db, table := url(r)
-	body, err := io.ReadAll(r.Body)
-	if err != nil || len(body) < 2 {
-		log.Println(err)
-		w.WriteHeader(400)
-		return
-	}
-	postBody := PostBody{}
-	jsonErr := json.Unmarshal(body, &postBody)
-	if jsonErr != nil {
-		log.Println(jsonErr)
+func get(w http.ResponseWriter, table fs.Table, err error) {
+	if err != nil {
+		// TODO: Handle errors
+		// Temporary error code
 		w.WriteHeader(500)
-		return
-	}
-	if db == "" || table == "" {
-		w.WriteHeader(400)
 	} else {
-		// TODO: Possibility to append content to table
+		jsonErr := sendJson(table, w, true)
+		if jsonErr != nil {
+			log.Println(jsonErr)
+			w.WriteHeader(500)
+		}
 	}
 }
 
-func put(w http.ResponseWriter, r *http.Request, config fs.Conf) {
-	if r.Header.Get("Content-Type") != "application/json" {
-		w.WriteHeader(415)
-		return
-	}
-	db, table := url(r)
-	body, err := io.ReadAll(r.Body)
-	if err != nil || len(body) < 2 {
-		log.Println(err)
-		w.WriteHeader(400)
-		return
-	}
-	putBody := PutBody{}
-	jsonErr := json.Unmarshal(body, &putBody)
-	if jsonErr != nil {
-		log.Println(jsonErr)
+func head(w http.ResponseWriter, table fs.Table, err error) {
+	if err != nil {
+		// TODO: Handle errors
+		// Temporary error code
 		w.WriteHeader(500)
-		return
-	}
-	if db == "" {
-		if putBody.Name == "" {
-			w.WriteHeader(400)
-			return
-		}
-		fsErr := fs.NewDB(putBody.Name, config.Dir)
-		if fsErr != nil {
-			log.Println(fsErr)
+	} else {
+		jsonErr := sendJson(table, w, false)
+		if jsonErr != nil {
+			log.Println(jsonErr)
 			w.WriteHeader(500)
-			return
 		}
-	} else if table == "" {
-		if putBody.Name == "" {
-			w.WriteHeader(400)
-			return
-		}
-		dir := config.Dir + "/" + db
-		fsErr := fs.NewTable(putBody.Name, dir)
-		if fsErr != nil {
-			log.Println(fsErr)
+	}
+}
+
+func post(w http.ResponseWriter, table fs.Table, err error) {
+	if err != nil {
+		// TODO: Handle errors
+		// Temporary error code
+		w.WriteHeader(500)
+	} else {
+		jsonErr := sendJson(table, w, true)
+		if jsonErr != nil {
+			log.Println(jsonErr)
 			w.WriteHeader(500)
-			return
-		}
-	} else {
-		w.WriteHeader(400)
-		return
-	}
-	w.WriteHeader(201)
-}
-
-func del(w http.ResponseWriter, r *http.Request, config fs.Conf) {
-	w.WriteHeader(405)
-}
-
-func url(r *http.Request) (db string, table string) {
-	path := r.URL.EscapedPath()
-	splitPath := strings.Split(path, "/")
-	var splitPathNoEmpty []string
-	for _, element := range splitPath {
-		if element != "" {
-			splitPathNoEmpty = append(splitPathNoEmpty, element)
 		}
 	}
-	if len(splitPathNoEmpty) > 0 {
-		db = splitPathNoEmpty[0]
-		if len(splitPathNoEmpty) > 1 {
-			table = splitPathNoEmpty[1]
-		} else {
-			table = ""
+}
+
+func put(w http.ResponseWriter, table fs.Table, err error) {
+	if err != nil {
+		// TODO: Handle errors
+		// Temporary error code
+		w.WriteHeader(500)
+	} else {
+		jsonErr := sendJson(table, w, true)
+		if jsonErr != nil {
+			log.Println(jsonErr)
+			w.WriteHeader(500)
 		}
-	} else {
-		db = ""
-		table = ""
-	}
-	return db, table
-}
-
-func getDBs(dir string) ([]string, error) {
-	dbs, dbErr := fs.GetDBs(dir)
-	if dbErr != nil {
-		return nil, dbErr
-	} else {
-		return dbs, nil
 	}
 }
 
-func getTables(db, dir string) ([]string, error) {
-	tables, tblErr := fs.GetTables(db, dir)
-	if tblErr != nil {
-		return nil, tblErr
+func del(w http.ResponseWriter, table fs.Table, err error) {
+	if err != nil {
+		// TODO: Handle errors
+		// Temporary error code
+		w.WriteHeader(500)
 	} else {
-		return tables, nil
+		jsonErr := sendJson(table, w, true)
+		if jsonErr != nil {
+			log.Println(jsonErr)
+			w.WriteHeader(500)
+		}
 	}
+}
+
+func checkSyntaxSQL(r *http.Request) bool {
+	if r.Header.Get("Syntax") == "SQL" {
+		return true
+	}
+	return false
 }
 
 func sendJson(data any, w http.ResponseWriter, withBody bool) error {

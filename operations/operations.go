@@ -34,10 +34,17 @@ func GTSyntax(method string, dir string, query string, config fs.Conf) (fs.Table
 // Handle requests that use SQL syntax
 
 func SQLSyntax(method string, dir string, query string, config fs.Conf) (fs.Table, error) {
-	if config.EnableSQLSyntax {
-		return fs.Table{}, nil
+	if !config.EnableGTSyntax {
+		return fs.Table{}, errors.New("sql syntax is disabled on the server")
 	}
-	return fs.Table{}, errors.New("sql syntax is disabled on the server")
+	query = strings.TrimSpace(query)
+	querySlice := strings.Split(query, " ")
+	db, table, err := dirSplit(dir)
+	if err != nil {
+		return fs.Table{}, err
+	}
+	retTable, retError := sqlQuery(method, querySlice, db, table, config)
+	return retTable, retError
 }
 
 // / Request operations ///
