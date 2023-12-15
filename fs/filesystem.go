@@ -3,13 +3,14 @@ package fs
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"os"
 	"strings"
 )
 
 type Column struct {
 	Name string `json:"name"`
-	Type any    `json:"type"` // Any value of a specific datatype. reflect.TypeOf() to get the type.
+	Type any    `json:"type"` // Any value of a specific datatype. reflect.TypeOf() to gt-get the type.
 }
 
 type Table struct {
@@ -19,8 +20,9 @@ type Table struct {
 
 type Conf struct {
 	// Basic config
-	Port string `json:"port"`
-	Dir  string `json:"dir"`
+	Port   string `json:"port"`
+	Dir    string `json:"dir"`
+	LogDir string `json:"log_dir"`
 	// HTTPS config
 	HTTPSMode bool   `json:"https"`
 	SSLCert   string `json:"cert"`
@@ -86,18 +88,22 @@ func Config() (Conf, error) {
 	// Defaults
 	config := Conf{
 		Port:            ":5678",
-		Dir:             "/srv/gotables",
+		Dir:             "/srv/GoTables/server",
+		LogDir:          "/srv/GoTables/logs",
 		EnableGTSyntax:  true,
 		EnableSQLSyntax: true,
 	}
-
-	confFile, fileErr := os.ReadFile("gtconfig.json")
-	if fileErr != nil {
-		return Conf{}, fileErr
-	}
-	jsonErr := json.Unmarshal(confFile, &config)
-	if jsonErr != nil {
-		return Conf{}, jsonErr
+	if _, err := os.Stat("gtconfig.json"); err == nil {
+		confFile, fileErr := os.ReadFile("gtconfig.json")
+		if fileErr != nil {
+			return Conf{}, fileErr
+		}
+		jsonErr := json.Unmarshal(confFile, &config)
+		if jsonErr != nil {
+			return Conf{}, jsonErr
+		}
+	} else {
+		log.Println("Warning: configuration file not found. Using default config.")
 	}
 	return config, nil
 }

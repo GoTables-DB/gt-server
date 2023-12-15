@@ -3,10 +3,11 @@ package operations
 import (
 	"errors"
 	"git.jereileu.ch/gotables/server/gt-server/fs"
-	"git.jereileu.ch/gotables/server/gt-server/operations/delete"
-	"git.jereileu.ch/gotables/server/gt-server/operations/get"
-	"git.jereileu.ch/gotables/server/gt-server/operations/post"
-	"git.jereileu.ch/gotables/server/gt-server/operations/put"
+	"git.jereileu.ch/gotables/server/gt-server/operations/gt-delete"
+	"git.jereileu.ch/gotables/server/gt-server/operations/gt-get"
+	"git.jereileu.ch/gotables/server/gt-server/operations/gt-post"
+	"git.jereileu.ch/gotables/server/gt-server/operations/gt-put"
+	"git.jereileu.ch/gotables/server/gt-server/operations/sql-post"
 	"log"
 	"net/http"
 	"strings"
@@ -67,18 +68,33 @@ func gtQuery(method string, query []string, db string, table string, config fs.C
 		return fs.Table{}, errors.New("empty query")
 	}
 	retTable := fs.Table{}
+	var retError error = nil
 	if method == http.MethodGet || method == http.MethodHead {
-		get.Get(method, db, table, config)
+		retTable, retError = gt_get.Get(db, table, config)
 	} else if method == http.MethodPut {
-		put.Put(db, table)
+		retTable, retError = gt_put.Put(db, table, config)
 	} else if method == http.MethodPost {
-		post.Post()
+		retTable, retError = gt_post.Post(query, db, table, config)
 	} else if method == http.MethodDelete {
-		del.Del()
+		retTable, retError = gt_del.Del(db, table, config)
 	} else {
 		return fs.Table{}, errors.New("invalid method")
 	}
-	return retTable, nil
+	return retTable, retError
+}
+
+func sqlQuery(method string, query []string, db string, table string, config fs.Conf) (fs.Table, error) {
+	if len(query) == 0 {
+		return fs.Table{}, errors.New("empty query")
+	}
+	retTable := fs.Table{}
+	var retError error = nil
+	if method == http.MethodPost {
+		retTable, retError = sql_post.Post(query, db, table, config)
+	} else {
+		return fs.Table{}, errors.New("invalid method")
+	}
+	return retTable, retError
 }
 
 // / Operations on db/tables ///
@@ -204,7 +220,7 @@ func deleteUser() {
 
 }
 
-func makeTable(columnIndexes []int, rowIndexes []int, table fs.Table) fs.Table {
+func MakeTableFromExisting(columnIndexes []int, rowIndexes []int, table fs.Table) fs.Table {
 	retTable := fs.Table{}
 	if len(columnIndexes) == 0 {
 		return fs.Table{}
@@ -231,4 +247,11 @@ func makeTable(columnIndexes []int, rowIndexes []int, table fs.Table) fs.Table {
 		}
 	}
 	return retTable
+}
+
+func MakeTableNew(columns []fs.Column, rows [][]interface{}) fs.Table {
+	return fs.Table{
+		ColumnNames: columns,
+		Rows:        rows,
+	}
 }

@@ -17,8 +17,8 @@ func main() {
 	} else {
 		log.Println("Started server at " + "http://127.0.0.1" + config.Port)
 	}
-	// log.Println("Logs are stored in " + config.LogDir)
-	log.Println("Press 'ctrl' + 'C' to stop this program")
+	log.Println("Logs are stored in " + config.LogDir)
+	log.Println("Press 'Ctrl' + 'C' to stop this program")
 	for {
 
 	}

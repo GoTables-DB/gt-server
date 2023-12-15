@@ -1,4 +1,4 @@
-package put
+package gt_put
 
 import (
 	"errors"
@@ -6,7 +6,7 @@ import (
 	"git.jereileu.ch/gotables/server/gt-server/operations"
 )
 
-func Put(db string, table string) (fs.Table, error) {
+func Put(db string, table string, config fs.Conf) (fs.Table, error) {
 	retTable := fs.Table{}
 	var retError error = nil
 

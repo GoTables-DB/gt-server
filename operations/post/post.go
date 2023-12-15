@@ -1,5 +1,0 @@
-package post
-
-func Post() {
-
-}

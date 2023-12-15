@@ -1,5 +1,0 @@
-package del
-
-func Del() {
-
-}
