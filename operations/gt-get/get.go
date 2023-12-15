@@ -2,7 +2,7 @@ package gt_get
 
 import (
 	"git.jereileu.ch/gotables/server/gt-server/fs"
-	"git.jereileu.ch/gotables/server/gt-server/operations"
+	"git.jereileu.ch/gotables/server/gt-server/operations/shared"
 )
 
 func Get(db string, table string, config fs.Conf) (fs.Table, error) {
@@ -34,7 +34,7 @@ func getDBs(dir string) (fs.Table, error) {
 	for i, db := range dbs {
 		rows[i] = append(rows[i], db)
 	}
-	retTable := operations.MakeTableNew(columns, rows)
+	retTable := shared.MakeNewTable(columns, rows)
 	return retTable, nil
 }
 
@@ -52,7 +52,7 @@ func getTables(db string, dir string) (fs.Table, error) {
 	for i, table := range tables {
 		rows[i] = append(rows[i], table)
 	}
-	retTable := operations.MakeTableNew(columns, rows)
+	retTable := shared.MakeNewTable(columns, rows)
 	return retTable, nil
 }
 

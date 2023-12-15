@@ -3,7 +3,7 @@ package gt_put
 import (
 	"errors"
 	"git.jereileu.ch/gotables/server/gt-server/fs"
-	"git.jereileu.ch/gotables/server/gt-server/operations"
+	"git.jereileu.ch/gotables/server/gt-server/operations/shared"
 )
 
 func Put(db string, table string, config fs.Conf) (fs.Table, error) {
@@ -13,9 +13,9 @@ func Put(db string, table string, config fs.Conf) (fs.Table, error) {
 	if db == "" {
 		retError = errors.New("no database specified")
 	} else if table == "" {
-		operations.AddDB()
+		shared.AddDB()
 	} else {
-		operations.AddTable()
+		shared.AddTable()
 	}
 
 	return retTable, retError
