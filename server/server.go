@@ -57,7 +57,7 @@ func get(w http.ResponseWriter, table fs.Table, err error) {
 		// Temporary error code
 		w.WriteHeader(500)
 	} else {
-		jsonErr := sendJson(table, w, true)
+		jsonErr := sendTable(table, w, true)
 		if jsonErr != nil {
 			log.Println(jsonErr)
 			w.WriteHeader(500)
@@ -71,7 +71,7 @@ func head(w http.ResponseWriter, table fs.Table, err error) {
 		// Temporary error code
 		w.WriteHeader(500)
 	} else {
-		jsonErr := sendJson(table, w, false)
+		jsonErr := sendTable(table, w, false)
 		if jsonErr != nil {
 			log.Println(jsonErr)
 			w.WriteHeader(500)
@@ -85,7 +85,7 @@ func post(w http.ResponseWriter, table fs.Table, err error) {
 		// Temporary error code
 		w.WriteHeader(500)
 	} else {
-		jsonErr := sendJson(table, w, true)
+		jsonErr := sendTable(table, w, true)
 		if jsonErr != nil {
 			log.Println(jsonErr)
 			w.WriteHeader(500)
@@ -99,7 +99,7 @@ func put(w http.ResponseWriter, table fs.Table, err error) {
 		// Temporary error code
 		w.WriteHeader(500)
 	} else {
-		jsonErr := sendJson(table, w, true)
+		jsonErr := sendTable(table, w, true)
 		if jsonErr != nil {
 			log.Println(jsonErr)
 			w.WriteHeader(500)
@@ -113,7 +113,7 @@ func del(w http.ResponseWriter, table fs.Table, err error) {
 		// Temporary error code
 		w.WriteHeader(500)
 	} else {
-		jsonErr := sendJson(table, w, true)
+		jsonErr := sendTable(table, w, true)
 		if jsonErr != nil {
 			log.Println(jsonErr)
 			w.WriteHeader(500)
@@ -128,8 +128,9 @@ func checkSyntaxSQL(r *http.Request) bool {
 	return false
 }
 
-func sendJson(data any, w http.ResponseWriter, withBody bool) error {
-	body, jsonErr := json.Marshal(data)
+func sendTable(data fs.Table, w http.ResponseWriter, withBody bool) error {
+	jsonData := fs.Ttoj(data)
+	body, jsonErr := json.Marshal(jsonData)
 	if jsonErr != nil {
 		return jsonErr
 	}

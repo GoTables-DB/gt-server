@@ -54,18 +54,13 @@ func dirSplit(dir string) (string, string, error) {
 	dirSlice := strings.Split(dir, "/")
 	db := ""
 	table := ""
-	if len(dirSlice) == 0 {
-		return "", "", errors.New("no database specified")
-	} else if len(dirSlice) > 2 {
+	if len(dirSlice) > 2 {
 		return "", "", errors.New("path too long")
 	} else if len(dirSlice) == 1 {
 		db = dirSlice[0]
 	} else {
 		db = dirSlice[0]
 		table = dirSlice[1]
-	}
-	if db == "" {
-		return "", "", errors.New("no database specified")
 	}
 	return table, db, nil
 }
