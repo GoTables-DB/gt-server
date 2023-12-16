@@ -6,43 +6,42 @@ import (
 	"log"
 )
 
-func MakeNewTable(columns []fs.Column, rows [][]interface{}) fs.Table {
-	return fs.Table{
-		ColumnNames: columns,
-		Rows:        rows,
-	}
+func MakeNewTable(columns []fs.Column, rows [][]interface{}) (fs.Table, error) {
+	table := fs.Table{}
+	var err error = nil
+	table = table.SetColumns(columns)
+	table, err = table.SetRows(rows)
+	return table, err
 }
 
-func MakeTableFromExisting(columnIndexes []int, rowIndexes []int, table fs.Table) fs.Table {
+func MakeTableFromTable(columnIndexes []int, rowIndexes []int, table fs.Table) (fs.Table, error) {
 	retTable := fs.Table{}
 	if len(columnIndexes) == 0 {
-		return fs.Table{}
+		return fs.Table{}, nil
 	}
-	retTable.ColumnNames = make([]fs.Column, len(table.ColumnNames))
-	for i, column := range table.ColumnNames {
+	retTable = retTable.SetColumns(make([]fs.Column, len(table.GetColumns())))
+	for i, column := range table.GetColumns() {
 		if column.Name == "*" {
-			retTable.ColumnNames = table.ColumnNames
+			retTable = retTable.SetColumns(table.GetColumns())
 			break
 		}
-		retTable.ColumnNames[i].Name = column.Name
-		retTable.ColumnNames[i].Type = column.Type
+		columns := retTable.GetColumns()
+		columns[i].Name = column.Name
+		columns[i].Type = column.Type
+		retTable = retTable.SetColumns(columns)
 	}
-	if len(rowIndexes) == 0 {
-		return fs.Table{
-			ColumnNames: retTable.ColumnNames,
-			Rows:        nil,
-		}
-	}
+	rows := table.GetRows()
+	rowsNew := make([][]interface{}, len(rowIndexes))
 	for i := range rowIndexes {
-		retTable.Rows = append(retTable.Rows, make([]interface{}, len(columnIndexes)))
 		for j := range columnIndexes {
-			retTable.Rows[i] = append(retTable.Rows[i], table.Rows[i][j])
+			rowsNew[i] = append(rowsNew[i], rows[i][j])
 		}
 	}
-	return retTable
+	retTable, err := retTable.SetRows(rowsNew)
+	return retTable, err
 }
 
-func selectTable(db string, tableName string, config fs.Conf) (fs.Table, error) {
+func SelectTable(db string, tableName string, config fs.Conf) (fs.Table, error) {
 	if tableName == "" {
 		return fs.Table{}, errors.New("no table specified")
 	}
@@ -54,23 +53,23 @@ func selectTable(db string, tableName string, config fs.Conf) (fs.Table, error) 
 	return table, errors.New("table not found")
 }
 
-func selectRows() {
+func SelectRows() {
 
 }
 
-func selectColumns(columnNames []string, table fs.Table) ([]int, error) {
+func SelectColumns(columnNames []string, table fs.Table) ([]int, error) {
 	if len(columnNames) == 0 {
 		return nil, errors.New("no columns specified")
 	}
 	indexes := make([]int, 0)
 	for _, columnName := range columnNames {
 		if columnName == "*" {
-			for i := 0; i < len(table.ColumnNames); i++ {
+			for i := 0; i < len(table.GetColumns()); i++ {
 				indexes = append(indexes, i)
 			}
 			return indexes, nil
 		}
-		for i, column := range table.ColumnNames {
+		for i, column := range table.GetColumns() {
 			if columnName == column.Name {
 				indexes = append(indexes, i)
 			}
@@ -79,19 +78,19 @@ func selectColumns(columnNames []string, table fs.Table) ([]int, error) {
 	return indexes, nil
 }
 
-func modifyDB() {
+func ModifyDB() {
 
 }
 
-func modifyTable() {
+func ModifyTable() {
 
 }
 
-func modifyRow() {
+func ModifyRow() {
 
 }
 
-func modifyColumn() {
+func ModifyColumn() {
 
 }
 
@@ -103,38 +102,38 @@ func AddTable() {
 
 }
 
-func addRow() {
+func AddRow() {
 
 }
 
-func addColumn() {
+func AddColumn() {
 
 }
 
-func deleteDB() {
+func DeleteDB() {
 
 }
 
-func deleteTable() {
+func DeleteTable() {
 
 }
 
-func deleteRow() {
+func DeleteRow() {
 
 }
 
-func deleteColumn() {
+func DeleteColumn() {
 
 }
 
-func addUser() {
+func DddUser() {
 
 }
 
-func modifyUser() {
+func ModifyUser() {
 
 }
 
-func deleteUser() {
+func DeleteUser() {
 
 }

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log"
 	"os"
+	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -13,9 +15,14 @@ type Column struct {
 	Type any    `json:"type"` // Any value of a specific datatype. reflect.TypeOf() to gt-get the type.
 }
 
-type Table struct {
+type TableJSON struct {
 	ColumnNames []Column        `json:"column_names"`
 	Rows        [][]interface{} `json:"rows"` // Row 1 for defaults
+}
+
+type Table struct {
+	columnNames []Column
+	rows        [][]interface{} // Row 1 for defaults
 }
 
 type Conf struct {
@@ -35,6 +42,56 @@ type Conf struct {
 	// MaxConnections int `json:"conn_max"`
 }
 
+/// Methods for Table ///
+
+func (t Table) GetColumns() []Column {
+	return t.columnNames
+}
+
+func (t Table) GetRows() [][]interface{} {
+	return t.rows
+}
+
+func (t Table) SetColumns(columns []Column) Table {
+	t.columnNames = columns
+	return t
+}
+
+func (t Table) SetRows(rows [][]interface{}) (Table, error) {
+	for i, row := range rows {
+		if len(row) != len(t.columnNames) {
+			return Table{}, errors.New("row length of row " + strconv.Itoa(i) + " is invalid")
+		}
+		for j, cell := range row {
+			if reflect.TypeOf(cell) != reflect.TypeOf(t.columnNames[j].Type) {
+				return Table{}, errors.New("type of cell " + strconv.Itoa(j) + " in row " + strconv.Itoa(i) + " is invalid")
+			}
+		}
+	}
+	t.rows = rows
+	return t, nil
+}
+
+/// Convert between TableJSON and Table ///
+
+// Jtot - JSON to Table
+func Jtot(j TableJSON) (Table, error) {
+	t := Table{}
+	t = t.SetColumns(j.ColumnNames)
+	t, err := t.SetRows(j.Rows)
+	return t, err
+}
+
+// Ttoj - Table to JSON
+func Ttoj(t Table) TableJSON {
+	j := TableJSON{}
+	j.ColumnNames = t.GetColumns()
+	j.Rows = t.GetRows()
+	return j
+}
+
+/// Read and write to filesystem ///
+
 func NewDB(name string, dir string) error {
 	dbLocation := dir + "/" + name
 	err := os.Mkdir(dbLocation, 0755)
@@ -46,7 +103,7 @@ func NewDB(name string, dir string) error {
 
 func NewTable(name string, dir string) error {
 	tblLocation := dir + "/" + name + ".json"
-	tbl := Table{}
+	tbl := TableJSON{}
 	data, jsonErr := json.Marshal(tbl)
 	if jsonErr != nil {
 		return jsonErr
@@ -84,6 +141,8 @@ func GetTable(db, table, dir string) (Table, error) {
 	return tableData, nil
 }
 
+/// Load config ///
+
 func Config() (Conf, error) {
 	// Defaults
 	config := Conf{
@@ -107,6 +166,8 @@ func Config() (Conf, error) {
 	}
 	return config, nil
 }
+
+/// Helper functions ///
 
 func ls(dir string) (contents []string, error error) {
 	entries, err := os.ReadDir(dir)
