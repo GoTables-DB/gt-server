@@ -5,7 +5,7 @@ import (
 	"git.jereileu.ch/gotables/server/gt-server/operations/shared"
 )
 
-func Get(db string, table string, config fs.Conf) (fs.Table, error) {
+func Get(table string, db string, config fs.Conf) (fs.Table, error) {
 	retTable := fs.Table{}
 	var retError error = nil
 
@@ -14,7 +14,7 @@ func Get(db string, table string, config fs.Conf) (fs.Table, error) {
 	} else if table == "" {
 		retTable, retError = getTables(db, config.Dir)
 	} else {
-		retTable, retError = getTable(db, table, config.Dir)
+		retTable, retError = getTable(table, db, config.Dir)
 	}
 
 	return retTable, retError
@@ -56,7 +56,7 @@ func getTables(db string, dir string) (fs.Table, error) {
 	return retTable, err
 }
 
-func getTable(db string, table string, dir string) (fs.Table, error) {
-	retTable, retError := fs.GetTable(db, table, dir)
+func getTable(table string, db string, dir string) (fs.Table, error) {
+	retTable, retError := fs.GetTable(table, db, dir)
 	return retTable, retError
 }

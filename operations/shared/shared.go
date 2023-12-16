@@ -37,11 +37,10 @@ func MakeTableFromTable(columnIndexes []int, rowIndexes []int, table fs.Table) (
 			rowsNew[i] = append(rowsNew[i], rows[i][j])
 		}
 	}
-	retTable, err := retTable.SetRows(rowsNew)
-	return retTable, err
+	return retTable.SetRows(rowsNew)
 }
 
-func SelectTable(db string, tableName string, config fs.Conf) (fs.Table, error) {
+func SelectTable(tableName string, db string, config fs.Conf) (fs.Table, error) {
 	if tableName == "" {
 		return fs.Table{}, errors.New("no table specified")
 	}
@@ -94,12 +93,41 @@ func ModifyColumn() {
 
 }
 
-func AddDB() {
-
+func AddDB(db, dir string) error {
+	if db == "" {
+		return errors.New("no database specified")
+	}
+	dbs, dbErr := fs.GetDBs(dir)
+	if dbErr != nil {
+		log.Println(dbErr)
+		return dbErr
+	}
+	for _, name := range dbs {
+		if db == name {
+			return errors.New("database already exists")
+		}
+	}
+	return fs.NewDB(db, dir)
 }
 
-func AddTable() {
-
+func AddTable(table, db, dir string) error {
+	if db == "" {
+		return errors.New("no database specified")
+	}
+	if table == "" {
+		return errors.New("no table specified")
+	}
+	tables, tableErr := fs.GetTables(db, dir)
+	if tableErr != nil {
+		log.Println(tableErr)
+		return tableErr
+	}
+	for _, name := range tables {
+		if table == name {
+			return errors.New("table already exists")
+		}
+	}
+	return fs.NewTable(table, db, dir)
 }
 
 func AddRow() {
@@ -110,12 +138,41 @@ func AddColumn() {
 
 }
 
-func DeleteDB() {
-
+func DeleteDB(db, dir string) error {
+	if db == "" {
+		return errors.New("no database specified")
+	}
+	dbs, dbErr := fs.GetDBs(dir)
+	if dbErr != nil {
+		log.Println(dbErr)
+		return dbErr
+	}
+	for _, name := range dbs {
+		if db == name {
+			return fs.DeleteDB(db, dir)
+		}
+	}
+	return errors.New("database not found")
 }
 
-func DeleteTable() {
-
+func DeleteTable(table, db, dir string) error {
+	if db == "" {
+		return errors.New("no database specified")
+	}
+	if table == "" {
+		return errors.New("no table specified")
+	}
+	tables, tableErr := fs.GetTables(db, dir)
+	if tableErr != nil {
+		log.Println(tableErr)
+		return tableErr
+	}
+	for _, name := range tables {
+		if table == name {
+			return fs.DeleteTable(table, db, dir)
+		}
+	}
+	return errors.New("table not found")
 }
 
 func DeleteRow() {
@@ -126,7 +183,7 @@ func DeleteColumn() {
 
 }
 
-func DddUser() {
+func AddUser() {
 
 }
 

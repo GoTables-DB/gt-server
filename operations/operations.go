@@ -23,11 +23,11 @@ func GTSyntax(method string, dir string, query string, config fs.Conf) (fs.Table
 	}
 	query = strings.TrimSpace(query)
 	querySlice := strings.Split(query, " ")
-	db, table, err := dirSplit(dir)
+	table, db, err := dirSplit(dir)
 	if err != nil {
 		return fs.Table{}, err
 	}
-	retTable, retError := gtQuery(method, querySlice, db, table, config)
+	retTable, retError := gtQuery(method, querySlice, table, db, config)
 	return retTable, retError
 }
 
@@ -39,11 +39,11 @@ func SQLSyntax(method string, dir string, query string, config fs.Conf) (fs.Tabl
 	}
 	query = strings.TrimSpace(query)
 	querySlice := strings.Split(query, " ")
-	db, table, err := dirSplit(dir)
+	table, db, err := dirSplit(dir)
 	if err != nil {
 		return fs.Table{}, err
 	}
-	retTable, retError := sqlQuery(method, querySlice, db, table, config)
+	retTable, retError := sqlQuery(method, querySlice, table, db, config)
 	return retTable, retError
 }
 
@@ -67,37 +67,37 @@ func dirSplit(dir string) (string, string, error) {
 	if db == "" {
 		return "", "", errors.New("no database specified")
 	}
-	return db, table, nil
+	return table, db, nil
 }
 
-func gtQuery(method string, query []string, db string, table string, config fs.Conf) (fs.Table, error) {
+func gtQuery(method string, query []string, table string, db string, config fs.Conf) (fs.Table, error) {
 	if len(query) == 0 {
 		return fs.Table{}, errors.New("empty query")
 	}
 	retTable := fs.Table{}
 	var retError error = nil
 	if method == http.MethodGet || method == http.MethodHead {
-		retTable, retError = gt_get.Get(db, table, config)
+		retTable, retError = gt_get.Get(table, db, config)
 	} else if method == http.MethodPut {
-		retTable, retError = gt_put.Put(db, table, config)
+		retTable, retError = gt_put.Put(table, db, config)
 	} else if method == http.MethodPost {
-		retTable, retError = gt_post.Post(query, db, table, config)
+		retTable, retError = gt_post.Post(query, table, db, config)
 	} else if method == http.MethodDelete {
-		retTable, retError = gt_del.Del(db, table, config)
+		retTable, retError = gt_del.Del(table, db, config)
 	} else {
 		return fs.Table{}, errors.New("invalid method")
 	}
 	return retTable, retError
 }
 
-func sqlQuery(method string, query []string, db string, table string, config fs.Conf) (fs.Table, error) {
+func sqlQuery(method string, query []string, table string, db string, config fs.Conf) (fs.Table, error) {
 	if len(query) == 0 {
 		return fs.Table{}, errors.New("empty query")
 	}
 	retTable := fs.Table{}
 	var retError error = nil
 	if method == http.MethodPost {
-		retTable, retError = sql_post.Post(query, db, table, config)
+		retTable, retError = sql_post.Post(query, table, db, config)
 	} else {
 		return fs.Table{}, errors.New("invalid method")
 	}

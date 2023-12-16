@@ -92,27 +92,33 @@ func Ttoj(t Table) TableJSON {
 
 /// Read and write to filesystem ///
 
-func NewDB(name string, dir string) error {
+func NewDB(name, dir string) error {
 	dbLocation := dir + "/" + name
 	err := os.Mkdir(dbLocation, 0755)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
-func NewTable(name string, dir string) error {
-	tblLocation := dir + "/" + name + ".json"
+func NewTable(name, db, dir string) error {
+	tblLocation := dir + "/" + db + "/" + name + ".json"
 	tbl := TableJSON{}
 	data, jsonErr := json.Marshal(tbl)
 	if jsonErr != nil {
 		return jsonErr
 	}
-	fsErr := os.WriteFile(tblLocation, data, 0755)
-	if fsErr != nil {
-		return fsErr
-	}
-	return nil
+	err := os.WriteFile(tblLocation, data, 0755)
+	return err
+}
+
+func DeleteDB(name, dir string) error {
+	dbLocation := dir + "/" + name
+	err := os.RemoveAll(dbLocation)
+	return err
+}
+
+func DeleteTable(name, db, dir string) error {
+	tblLocation := dir + "/" + db + "/" + name + ".json"
+	err := os.Remove(tblLocation)
+	return err
 }
 
 func GetDBs(dir string) ([]string, error) {
@@ -125,7 +131,7 @@ func GetTables(db, dir string) ([]string, error) {
 	return tables, err
 }
 
-func GetTable(db, table, dir string) (Table, error) {
+func GetTable(table, db, dir string) (Table, error) {
 	if table == "" {
 		return Table{}, errors.New("no table specified")
 	}
@@ -135,10 +141,7 @@ func GetTable(db, table, dir string) (Table, error) {
 	}
 	tableData := Table{}
 	jsonErr := json.Unmarshal(tableFile, &tableData)
-	if jsonErr != nil {
-		return Table{}, jsonErr
-	}
-	return tableData, nil
+	return tableData, jsonErr
 }
 
 /// Load config ///

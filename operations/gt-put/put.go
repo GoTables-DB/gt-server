@@ -6,16 +6,16 @@ import (
 	"git.jereileu.ch/gotables/server/gt-server/operations/shared"
 )
 
-func Put(db string, table string, config fs.Conf) (fs.Table, error) {
+func Put(table string, db string, config fs.Conf) (fs.Table, error) {
 	retTable := fs.Table{}
 	var retError error = nil
 
 	if db == "" {
 		retError = errors.New("no database specified")
 	} else if table == "" {
-		shared.AddDB()
+		retError = shared.AddDB(db, config.Dir)
 	} else {
-		shared.AddTable()
+		retError = shared.AddTable(table, db, config.Dir)
 	}
 
 	return retTable, retError
