@@ -9,36 +9,27 @@ import (
 	"strconv"
 )
 
-type PostBody struct {
-	Name string `json:"name"`
-}
-
-type PutBody struct {
-	Name        string `json:"name"`
-	CellsPerRow int    `json:"row_length"`
-}
-
 func Run(config fs.Conf) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
-			table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.RawQuery, config)
+			table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.Query().Get("query"), config)
 			get(w, table, err)
 		} else if r.Method == http.MethodHead {
-			table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.RawQuery, config)
+			table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.Query().Get("query"), config)
 			head(w, table, err)
 		} else if r.Method == http.MethodPost {
 			if checkSyntaxSQL(r) {
-				table, err := operations.SQLSyntax(r.Method, r.URL.Path, r.URL.RawQuery, config)
+				table, err := operations.SQLSyntax(r.Method, r.URL.Path, r.URL.Query().Get("query"), config)
 				post(w, table, err)
 			} else {
-				table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.RawQuery, config)
+				table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.Query().Get("query"), config)
 				post(w, table, err)
 			}
 		} else if r.Method == http.MethodPut {
-			table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.RawQuery, config)
+			table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.Query().Get("query"), config)
 			put(w, table, err)
 		} else if r.Method == http.MethodDelete {
-			table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.RawQuery, config)
+			table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.Query().Get("query"), config)
 			del(w, table, err)
 		} else {
 			w.WriteHeader(405)

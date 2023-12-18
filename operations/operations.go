@@ -8,6 +8,7 @@ import (
 	"git.jereileu.ch/gotables/server/gt-server/operations/gt-post"
 	"git.jereileu.ch/gotables/server/gt-server/operations/gt-put"
 	"git.jereileu.ch/gotables/server/gt-server/operations/sql-post"
+	"html"
 	"log"
 	"net/http"
 	"strings"
@@ -21,6 +22,7 @@ func GTSyntax(method string, dir string, query string, config fs.Conf) (fs.Table
 	if !config.EnableGTSyntax {
 		return fs.Table{}, errors.New("gotables syntax is disabled on the server")
 	}
+	query = html.UnescapeString(query)
 	query = strings.TrimSpace(query)
 	querySlice := strings.Split(query, " ")
 	table, db, err := dirSplit(dir)
