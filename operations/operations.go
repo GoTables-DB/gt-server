@@ -78,7 +78,7 @@ func gtQuery(method string, query []string, table string, db string, config fs.C
 	} else if method == http.MethodPut {
 		retTable, retError = gt_put.Put(table, db, config)
 	} else if method == http.MethodPost {
-		retTable, retError = gt_post.Post(query, table, db, config)
+		retTable, retError = gt_post.Post(query, config)
 	} else if method == http.MethodDelete {
 		retTable, retError = gt_del.Del(table, db, config)
 	} else {

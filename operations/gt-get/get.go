@@ -14,7 +14,7 @@ func Get(table string, db string, config fs.Conf) (fs.Table, error) {
 	} else if table == "" {
 		retTable, retError = getTables(db, config.Dir)
 	} else {
-		retTable, retError = getTable(table, db, config.Dir)
+		retTable, retError = fs.GetTable(table, db, config.Dir)
 	}
 
 	return retTable, retError
@@ -25,17 +25,12 @@ func getDBs(dir string) (fs.Table, error) {
 	if err != nil {
 		return fs.Table{}, err
 	}
-	column := fs.Column{
-		Name: "DBs",
-		Type: "string",
-	}
-	columns := []fs.Column{column}
+	columns := []fs.Column{{Name: "Databases", Type: "string"}}
 	rows := make([][]interface{}, 0)
 	for _, db := range dbs {
 		rows = append(rows, []interface{}{db})
 	}
-	retTable, err := shared.MakeNewTable(columns, rows)
-	return retTable, err
+	return shared.MakeNewTable(columns, rows)
 }
 
 func getTables(db string, dir string) (fs.Table, error) {
@@ -43,20 +38,10 @@ func getTables(db string, dir string) (fs.Table, error) {
 	if err != nil {
 		return fs.Table{}, err
 	}
-	column := fs.Column{
-		Name: "Tables",
-		Type: "string",
-	}
-	columns := []fs.Column{column}
+	columns := []fs.Column{{Name: "Tables", Type: "string"}}
 	rows := make([][]interface{}, 0)
 	for _, table := range tables {
 		rows = append(rows, []interface{}{table})
 	}
-	retTable, err := shared.MakeNewTable(columns, rows)
-	return retTable, err
-}
-
-func getTable(table string, db string, dir string) (fs.Table, error) {
-	retTable, retError := fs.GetTable(table, db, dir)
-	return retTable, retError
+	return shared.MakeNewTable(columns, rows)
 }
