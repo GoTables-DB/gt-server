@@ -163,9 +163,13 @@ func GetTable(name, db, dir string) (Table, error) {
 	if err != nil {
 		return Table{}, errors.New("table " + name + " in database " + db + " could not be found")
 	}
-	tableData := Table{}
-	jsonErr := json.Unmarshal(tableFile, &tableData)
-	return tableData, jsonErr
+	tableData := TableJSON{}
+	err = json.Unmarshal(tableFile, &tableData)
+	if err != nil {
+		return Table{}, err
+	}
+	table, err := Jtot(tableData)
+	return table, err
 }
 
 func ModifyTable(data Table, name string, db string, dir string) error {
