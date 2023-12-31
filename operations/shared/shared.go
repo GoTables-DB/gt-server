@@ -4,14 +4,56 @@ import (
 	"errors"
 	"git.jereileu.ch/gotables/server/gt-server/fs"
 	"log"
+	"strconv"
+	"strings"
 )
 
-func MakeNewTable(columns []fs.Column, rows [][]interface{}) (fs.Table, error) {
+func MakeTable(columns []fs.Column, rows [][]interface{}) (fs.Table, error) {
 	table := fs.Table{}
 	var err error = nil
 	table = table.SetColumns(columns)
 	table, err = table.SetRows(rows)
 	return table, err
+}
+
+func MakeTableWithColumns(columns []string) (fs.Table, error) {
+	cols := make([]fs.Column, 0)
+	for i, column := range columns {
+		col := fs.Column{}
+		switch strings.Count(column, ":") {
+		case 0:
+			return fs.Table{}, errors.New("need to specify datatype of column at index " + strconv.Itoa(i))
+		case 1:
+			colSplit := strings.Split(column, ":")
+			if len(colSplit) != 2 {
+				return fs.Table{}, errors.New("internal server error")
+			}
+			datatype, err := fs.DetermineDatatype(colSplit[1])
+			if err != nil {
+				return fs.Table{}, err
+			}
+			col.Name = colSplit[0]
+			col.Type = datatype
+			col.Default = datatype
+		case 2:
+			colSplit := strings.Split(column, ":")
+			if len(colSplit) != 3 {
+				return fs.Table{}, errors.New("internal server error")
+			}
+			datatype, err := fs.DetermineDatatype(colSplit[1])
+			if err != nil {
+				return fs.Table{}, err
+			}
+			col.Name = colSplit[0]
+			col.Type = datatype
+			col.Default = colSplit[2]
+		default:
+			return fs.Table{}, errors.New("illegal column at index " + strconv.Itoa(i))
+		}
+		cols = append(cols, col)
+	}
+	tbl := fs.Table{}.SetColumns(cols)
+	return tbl, nil
 }
 
 func MakeTableFromTable(columnIndexes []int, rowIndexes []int, table fs.Table) (fs.Table, error) {

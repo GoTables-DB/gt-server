@@ -2,7 +2,6 @@ package gt_post
 
 import (
 	"errors"
-	"fmt"
 	"git.jereileu.ch/gotables/server/gt-server/fs"
 	"git.jereileu.ch/gotables/server/gt-server/operations/shared"
 	"strings"
@@ -11,8 +10,6 @@ import (
 func Post(query []string, config fs.Conf) (fs.Table, error) {
 	retTable := fs.Table{}
 	var retError error
-
-	fmt.Println(query)
 
 	switch strings.ToLower(query[0]) {
 	// List dbs
@@ -29,7 +26,7 @@ func Post(query []string, config fs.Conf) (fs.Table, error) {
 			for _, db := range dbs {
 				rows = append(rows, []interface{}{db})
 			}
-			retTable, retError = shared.MakeNewTable(columns, rows)
+			retTable, retError = shared.MakeTable(columns, rows)
 		}
 	case "database":
 		if len(query) < 3 {
@@ -55,9 +52,8 @@ func Post(query []string, config fs.Conf) (fs.Table, error) {
 				for _, table := range tables {
 					rows = append(rows, []interface{}{table})
 				}
-				retTable, retError = shared.MakeNewTable(columns, rows)
+				retTable, retError = shared.MakeTable(columns, rows)
 			}
-		case "modify":
 		case "delete":
 			if len(query) != 3 {
 				retError = errors.New("invalid syntax")
@@ -70,7 +66,15 @@ func Post(query []string, config fs.Conf) (fs.Table, error) {
 			switch strings.ToLower(query[4]) {
 			case "create":
 				if len(query) != 5 {
-					retError = errors.New("invalid syntax")
+					if len(query) < 7 {
+						retError = errors.New("invalid syntax")
+					} else {
+						if query[5] != "columns" {
+							retError = errors.New("invalid syntax")
+						} else {
+							retTable, retError = makeTableWithColumns(query[6:], query[3], query[1], config.Dir)
+						}
+					}
 				} else {
 					retError = fs.NewTable(query[3], query[1], config.Dir)
 				}
@@ -82,7 +86,6 @@ func Post(query []string, config fs.Conf) (fs.Table, error) {
 				} else {
 					retError = fs.DeleteTable(query[3], query[1], config.Dir)
 				}
-			case "row":
 			case "column":
 			}
 		}
@@ -93,4 +96,17 @@ func Post(query []string, config fs.Conf) (fs.Table, error) {
 	}
 
 	return retTable, retError
+}
+
+func makeTableWithColumns(columns []string, table string, db string, dir string) (fs.Table, error) {
+	err := fs.NewTable(table, db, dir)
+	if err != nil {
+		return fs.Table{}, err
+	}
+	tbl, err := shared.MakeTableWithColumns(columns)
+	if err != nil {
+		return fs.Table{}, err
+	}
+	err = fs.ModifyTable(tbl, table, db, dir)
+	return tbl, err
 }

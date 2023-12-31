@@ -8,21 +8,23 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Column struct {
-	Name string `json:"name"`
-	Type any    `json:"type"` // Any value of a specific datatype. reflect.TypeOf() to gt-get the type.
+	Name    string `json:"name"`
+	Type    any    `json:"type"` // Any value of a specific datatype. reflect.TypeOf() to gt-get the type.
+	Default any    `json:"default"`
 }
 
 type TableJSON struct {
-	ColumnNames []Column        `json:"column_names"`
-	Rows        [][]interface{} `json:"rows"` // Row 1 for defaults
+	Columns []Column        `json:"columns"`
+	Rows    [][]interface{} `json:"rows"`
 }
 
 type Table struct {
-	columnNames []Column
-	rows        [][]interface{} // Row 1 for defaults
+	columns []Column
+	rows    [][]interface{} // Row 1 for defaults
 }
 
 type Conf struct {
@@ -42,10 +44,38 @@ type Conf struct {
 	// MaxConnections int `json:"conn_max"`
 }
 
+func DetermineDatatype(datatype string) (any, error) {
+	var ret any
+	var err error
+	switch datatype {
+	// String
+	case "str":
+		ret = ""
+	// Integer
+	case "int":
+		ret = 0
+	// Float
+	case "flt":
+		ret = 0.0
+	// Boolean
+	case "bol":
+		ret = false
+	// Date
+	case "dat":
+		ret = time.Time{}
+	// Table
+	case "tab":
+		ret = Table{}
+	default:
+		err = errors.New("unknown datatype")
+	}
+	return ret, err
+}
+
 /// Methods for Table ///
 
 func (t Table) GetColumns() []Column {
-	return t.columnNames
+	return t.columns
 }
 
 func (t Table) GetRows() [][]interface{} {
@@ -53,17 +83,17 @@ func (t Table) GetRows() [][]interface{} {
 }
 
 func (t Table) SetColumns(columns []Column) Table {
-	t.columnNames = columns
+	t.columns = columns
 	return t
 }
 
 func (t Table) SetRows(rows [][]interface{}) (Table, error) {
 	for i, row := range rows {
-		if len(row) != len(t.columnNames) {
+		if len(row) != len(t.columns) {
 			return Table{}, errors.New("row length of row " + strconv.Itoa(i) + " is invalid")
 		}
 		for j, cell := range row {
-			if reflect.TypeOf(cell) != reflect.TypeOf(t.columnNames[j].Type) {
+			if reflect.TypeOf(cell) != reflect.TypeOf(t.columns[j].Type) {
 				return Table{}, errors.New("type of cell " + strconv.Itoa(j) + " in row " + strconv.Itoa(i) + " is invalid")
 			}
 		}
@@ -77,7 +107,7 @@ func (t Table) SetRows(rows [][]interface{}) (Table, error) {
 // Jtot - JSON to Table
 func Jtot(j TableJSON) (Table, error) {
 	t := Table{}
-	t = t.SetColumns(j.ColumnNames)
+	t = t.SetColumns(j.Columns)
 	t, err := t.SetRows(j.Rows)
 	return t, err
 }
@@ -85,7 +115,7 @@ func Jtot(j TableJSON) (Table, error) {
 // Ttoj - Table to JSON
 func Ttoj(t Table) TableJSON {
 	j := TableJSON{}
-	j.ColumnNames = t.GetColumns()
+	j.Columns = t.GetColumns()
 	j.Rows = t.GetRows()
 	return j
 }
@@ -99,13 +129,7 @@ func NewDB(name, dir string) error {
 }
 
 func NewTable(name, db, dir string) error {
-	tblLocation := dir + "/" + db + "/" + name + ".json"
-	tbl := TableJSON{}
-	data, jsonErr := json.Marshal(tbl)
-	if jsonErr != nil {
-		return jsonErr
-	}
-	err := os.WriteFile(tblLocation, data, 0755)
+	err := writeTable(Table{}, name, db, dir)
 	return err
 }
 
@@ -131,17 +155,26 @@ func GetTables(db, dir string) ([]string, error) {
 	return tables, err
 }
 
-func GetTable(table, db, dir string) (Table, error) {
-	if table == "" {
+func GetTable(name, db, dir string) (Table, error) {
+	if name == "" {
 		return Table{}, errors.New("no table specified")
 	}
-	tableFile, err := os.ReadFile(dir + "/" + db + "/" + table + ".json")
+	tableFile, err := os.ReadFile(dir + "/" + db + "/" + name + ".json")
 	if err != nil {
-		return Table{}, errors.New("table not found")
+		return Table{}, errors.New("table " + name + " in database " + db + " could not be found")
 	}
 	tableData := Table{}
 	jsonErr := json.Unmarshal(tableFile, &tableData)
 	return tableData, jsonErr
+}
+
+func ModifyTable(data Table, name string, db string, dir string) error {
+	_, err := GetTable(name, db, dir)
+	if err != nil {
+		return err
+	}
+	err = writeTable(data, name, db, dir)
+	return err
 }
 
 /// Load config ///
@@ -182,4 +215,18 @@ func ls(dir string) (contents []string, error error) {
 		contents = append(contents, strings.TrimSuffix(entry.Name(), ".json"))
 	}
 	return contents, nil
+}
+
+func writeTable(data Table, name string, db string, dir string) error {
+	tblLocation := dir + "/" + db + "/" + name + ".json"
+	tbl := TableJSON{
+		Columns: data.columns,
+		Rows:    data.rows,
+	}
+	jsonData, jsonErr := json.Marshal(tbl)
+	if jsonErr != nil {
+		return jsonErr
+	}
+	err := os.WriteFile(tblLocation, jsonData, 0755)
+	return err
 }

@@ -30,7 +30,7 @@ func getDBs(dir string) (fs.Table, error) {
 	for _, db := range dbs {
 		rows = append(rows, []interface{}{db})
 	}
-	return shared.MakeNewTable(columns, rows)
+	return shared.MakeTable(columns, rows)
 }
 
 func getTables(db string, dir string) (fs.Table, error) {
@@ -43,5 +43,5 @@ func getTables(db string, dir string) (fs.Table, error) {
 	for _, table := range tables {
 		rows = append(rows, []interface{}{table})
 	}
-	return shared.MakeNewTable(columns, rows)
+	return shared.MakeTable(columns, rows)
 }
