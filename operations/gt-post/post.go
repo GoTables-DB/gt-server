@@ -15,82 +15,83 @@ func Post(query []string, config fs.Conf) (fs.Table, error) {
 	// List dbs
 	case "list":
 		if len(query) != 1 {
-			retError = errors.New("invalid syntax")
-		} else {
-			dbs, err := fs.GetDBs(config.Dir)
-			if err != nil {
-				return fs.Table{}, err
-			}
-			columns := []fs.Column{{Name: "Databases", Type: "string"}}
-			rows := make([][]interface{}, 0)
-			for _, db := range dbs {
-				rows = append(rows, []interface{}{db})
-			}
-			retTable, retError = shared.MakeTable(columns, rows)
+			return fs.Table{}, errors.New("invalid syntax")
 		}
+		dbs, err := fs.GetDBs(config.Dir)
+		if err != nil {
+			return fs.Table{}, err
+		}
+		columns := []fs.Column{{Name: "Databases", Type: "string"}}
+		rows := make([][]interface{}, 0)
+		for _, db := range dbs {
+			rows = append(rows, []interface{}{db})
+		}
+		retTable, retError = shared.MakeTable(columns, rows)
 	case "database":
 		if len(query) < 3 {
-			retError = errors.New("invalid syntax")
+			return fs.Table{}, errors.New("invalid syntax")
 		}
 		switch strings.ToLower(query[2]) {
 		case "create":
 			if len(query) != 3 {
-				retError = errors.New("invalid syntax")
-			} else {
-				retError = fs.NewDB(query[1], config.Dir)
+				return fs.Table{}, errors.New("invalid syntax")
 			}
-		case "list":
+			retError = fs.NewDB(query[1], config.Dir)
+		case "show":
 			if len(query) != 3 {
-				retError = errors.New("invalid syntax")
-			} else {
-				tables, err := fs.GetTables(query[1], config.Dir)
-				if err != nil {
-					return fs.Table{}, err
-				}
-				columns := []fs.Column{{Name: "Tables", Type: "string"}}
-				rows := make([][]interface{}, 0)
-				for _, table := range tables {
-					rows = append(rows, []interface{}{table})
-				}
-				retTable, retError = shared.MakeTable(columns, rows)
+				return fs.Table{}, errors.New("invalid syntax")
 			}
+			tables, err := fs.GetTables(query[1], config.Dir)
+			if err != nil {
+				return fs.Table{}, err
+			}
+			columns := []fs.Column{{Name: "Tables", Type: "string"}}
+			rows := make([][]interface{}, 0)
+			for _, table := range tables {
+				rows = append(rows, []interface{}{table})
+			}
+			retTable, retError = shared.MakeTable(columns, rows)
+		case "move":
+		case "copy":
 		case "delete":
 			if len(query) != 3 {
-				retError = errors.New("invalid syntax")
+				return fs.Table{}, errors.New("invalid syntax")
 			}
 			retError = fs.DeleteDB(query[1], config.Dir)
 		case "table":
 			if len(query) < 5 {
-				retError = errors.New("invalid syntax")
+				return fs.Table{}, errors.New("invalid syntax")
 			}
 			switch strings.ToLower(query[4]) {
 			case "create":
 				if len(query) != 5 {
 					if len(query) < 7 {
-						retError = errors.New("invalid syntax")
-					} else {
-						if query[5] != "columns" {
-							retError = errors.New("invalid syntax")
-						} else {
-							retTable, retError = makeTableWithColumns(query[6:], query[3], query[1], config.Dir)
-						}
+						return fs.Table{}, errors.New("invalid syntax")
 					}
+					if query[5] != "columns" {
+						return fs.Table{}, errors.New("invalid syntax")
+					}
+					retTable, retError = makeTableWithColumns(query[6:], query[3], query[1], config.Dir)
 				} else {
 					retError = fs.NewTable(query[3], query[1], config.Dir)
 				}
 			case "show":
-			case "modify":
+			case "move":
+			case "copy":
 			case "delete":
 				if len(query) != 5 {
-					retError = errors.New("invalid syntax")
-				} else {
-					retError = fs.DeleteTable(query[3], query[1], config.Dir)
+					return fs.Table{}, errors.New("invalid syntax")
 				}
+				retError = fs.DeleteTable(query[3], query[1], config.Dir)
 			case "column":
+
+			case "row":
 			}
 		}
 	case "user":
 		// TODO: Implement user management
+	case "backup":
+		// TODO: Implement backups
 	default:
 		retError = errors.New("invalid syntax")
 	}
