@@ -172,6 +172,31 @@ func GetTable(name, db, dir string) (Table, error) {
 	return table, err
 }
 
+func MoveDB(oldName string, name string, dir string) error {
+	err := CopyDB(oldName, name, dir)
+	if err != nil {
+		return err
+	}
+	err = DeleteDB(oldName, dir)
+	return err
+}
+
+func CopyDB(oldName string, name string, dir string) error {
+	exists, err := existsDB(name, dir)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return errors.New("database " + name + " already exists")
+	}
+	err = NewDB(name, dir)
+	if err != nil {
+		return err
+	}
+	err = cpDB(oldName, name, dir)
+	return err
+}
+
 func ModifyTable(data Table, name string, db string, dir string) error {
 	_, err := GetTable(name, db, dir)
 	if err != nil {
@@ -219,6 +244,37 @@ func ls(dir string) (contents []string, error error) {
 		contents = append(contents, strings.TrimSuffix(entry.Name(), ".json"))
 	}
 	return contents, nil
+}
+
+func existsDB(name string, dir string) (bool, error) {
+	dbs, err := GetDBs(dir)
+	if err != nil {
+		return false, err
+	}
+	for _, db := range dbs {
+		if db == name {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func cpDB(oldDB, db, dir string) error {
+	files, err := ls(dir + "/" + oldDB)
+	if err != nil {
+		return err
+	}
+	for i := 0; i < len(files); i++ {
+		file, err := os.ReadFile(dir + "/" + oldDB + "/" + files[i] + ".json")
+		if err != nil {
+			return err
+		}
+		err = os.WriteFile(dir+"/"+db+"/"+files[i]+".json", file, 0755)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func writeTable(data Table, name string, db string, dir string) error {

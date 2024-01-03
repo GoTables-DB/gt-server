@@ -13,7 +13,7 @@ func Post(query []string, config fs.Conf) (fs.Table, error) {
 
 	switch strings.ToLower(query[0]) {
 	// List dbs
-	case "list":
+	case "show":
 		if len(query) != 1 {
 			return fs.Table{}, errors.New("invalid syntax")
 		}
@@ -52,7 +52,15 @@ func Post(query []string, config fs.Conf) (fs.Table, error) {
 			}
 			retTable, retError = shared.MakeTable(columns, rows)
 		case "move":
+			if len(query) != 4 {
+				return fs.Table{}, errors.New("invalid syntax")
+			}
+			retError = fs.MoveDB(query[1], query[3], config.Dir)
 		case "copy":
+			if len(query) != 4 {
+				return fs.Table{}, errors.New("invalid syntax")
+			}
+			retError = fs.CopyDB(query[1], query[3], config.Dir)
 		case "delete":
 			if len(query) != 3 {
 				return fs.Table{}, errors.New("invalid syntax")
