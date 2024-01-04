@@ -85,7 +85,15 @@ func Post(query []string, config fs.Conf) (fs.Table, error) {
 				}
 			case "show":
 			case "move":
+				if len(query) != 6 {
+					return fs.Table{}, errors.New("invalid syntax")
+				}
+				retError = fs.MoveTable(query[3], query[5], query[1], config.Dir)
 			case "copy":
+				if len(query) != 6 {
+					return fs.Table{}, errors.New("invalid syntax")
+				}
+				retError = fs.CopyTable(query[3], query[5], query[1], config.Dir)
 			case "delete":
 				if len(query) != 5 {
 					return fs.Table{}, errors.New("invalid syntax")

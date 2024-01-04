@@ -172,7 +172,7 @@ func GetTable(name, db, dir string) (Table, error) {
 	return table, err
 }
 
-func MoveDB(oldName string, name string, dir string) error {
+func MoveDB(oldName, name, dir string) error {
 	err := CopyDB(oldName, name, dir)
 	if err != nil {
 		return err
@@ -181,7 +181,7 @@ func MoveDB(oldName string, name string, dir string) error {
 	return err
 }
 
-func CopyDB(oldName string, name string, dir string) error {
+func CopyDB(oldName, name, dir string) error {
 	exists, err := existsDB(name, dir)
 	if err != nil {
 		return err
@@ -194,6 +194,31 @@ func CopyDB(oldName string, name string, dir string) error {
 		return err
 	}
 	err = cpDB(oldName, name, dir)
+	return err
+}
+
+func MoveTable(oldName, name, db, dir string) error {
+	err := CopyTable(oldName, name, db, dir)
+	if err != nil {
+		return err
+	}
+	err = DeleteTable(oldName, db, dir)
+	return err
+}
+
+func CopyTable(oldName, name, db, dir string) error {
+	exists, err := existsTable(name, db, dir)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return errors.New("table" + name + " in database " + db + " already exists")
+	}
+	err = NewTable(name, db, dir)
+	if err != nil {
+		return err
+	}
+	err = cpTable(oldName, name, db, dir)
 	return err
 }
 
@@ -246,7 +271,7 @@ func ls(dir string) (contents []string, error error) {
 	return contents, nil
 }
 
-func existsDB(name string, dir string) (bool, error) {
+func existsDB(name, dir string) (bool, error) {
 	dbs, err := GetDBs(dir)
 	if err != nil {
 		return false, err
@@ -259,22 +284,44 @@ func existsDB(name string, dir string) (bool, error) {
 	return false, nil
 }
 
-func cpDB(oldDB, db, dir string) error {
-	files, err := ls(dir + "/" + oldDB)
+func cpDB(oldName, name, dir string) error {
+	files, err := ls(dir + "/" + oldName)
 	if err != nil {
 		return err
 	}
 	for i := 0; i < len(files); i++ {
-		file, err := os.ReadFile(dir + "/" + oldDB + "/" + files[i] + ".json")
+		file, err := os.ReadFile(dir + "/" + oldName + "/" + files[i] + ".json")
 		if err != nil {
 			return err
 		}
-		err = os.WriteFile(dir+"/"+db+"/"+files[i]+".json", file, 0755)
+		err = os.WriteFile(dir+"/"+name+"/"+files[i]+".json", file, 0755)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func existsTable(name, db, dir string) (bool, error) {
+	tables, err := GetTables(db, dir)
+	if err != nil {
+		return false, err
+	}
+	for _, table := range tables {
+		if table == name {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func cpTable(oldName, name, db, dir string) error {
+	file, err := os.ReadFile(dir + "/" + db + "/" + oldName + ".json")
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(dir+"/"+db+"/"+name+".json", file, 0755)
+	return err
 }
 
 func writeTable(data Table, name string, db string, dir string) error {
