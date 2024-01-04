@@ -84,6 +84,20 @@ func Post(query []string, config fs.Conf) (fs.Table, error) {
 					retError = fs.NewTable(query[3], query[1], config.Dir)
 				}
 			case "show":
+				table, err := fs.GetTable(query[3], query[1], config.Dir)
+				if err != nil {
+					return fs.Table{}, err
+				}
+				if len(query) == 5 {
+					retTable = table
+				} else if len(query) == 6 {
+					retTable, retError = showTable(query[5], table, []string{})
+				} else if query[6] == "condition" {
+					return fs.Table{}, errors.New("not yet implemented")
+					// retTable, retError = showTable(query[5], table, query[7])
+				} else {
+					return fs.Table{}, errors.New("invalid syntax")
+				}
 			case "move":
 				if len(query) != 6 {
 					return fs.Table{}, errors.New("invalid syntax")
@@ -100,7 +114,9 @@ func Post(query []string, config fs.Conf) (fs.Table, error) {
 				}
 				retError = fs.DeleteTable(query[3], query[1], config.Dir)
 			case "column":
-
+				if len(query) < 7 {
+					return fs.Table{}, errors.New("invalid syntax")
+				}
 			case "row":
 			}
 		}
@@ -126,4 +142,18 @@ func makeTableWithColumns(columns []string, table string, db string, dir string)
 	}
 	err = fs.ModifyTable(tbl, table, db, dir)
 	return tbl, err
+}
+
+func showTable(columns string, table fs.Table, condition []string) (fs.Table, error) {
+	colSlice := strings.Split(columns, ":")
+	rows := make([]int, 0)
+	for i := 0; i < len(table.GetRows()); i++ {
+		rows = append(rows, i)
+	}
+	cols, err := shared.SelectColumns(colSlice, table)
+	if err != nil {
+		return fs.Table{}, err
+	}
+	retTable, err := shared.MakeTableFromTable(cols, rows, table)
+	return retTable, err
 }
