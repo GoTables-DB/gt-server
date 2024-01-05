@@ -242,8 +242,12 @@ func Config() (Conf, error) {
 		EnableGTSyntax:  true,
 		EnableSQLSyntax: true,
 	}
-	if _, err := os.Stat("gtconfig.json"); err == nil {
-		confFile, fileErr := os.ReadFile("gtconfig.json")
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return Conf{}, err
+	}
+	if _, err := os.Stat(home + "/.config/gotables/config.json"); err == nil {
+		confFile, fileErr := os.ReadFile(home + "/.config/gotables/config.json")
 		if fileErr != nil {
 			return Conf{}, fileErr
 		}
