@@ -13,7 +13,7 @@ import (
 
 type Column struct {
 	Name    string `json:"name"`
-	Type    any    `json:"type"` // Any value of a specific datatype. reflect.TypeOf() to gt-get the type.
+	Type    any    `json:"type"` // Any value of a specific datatype. reflect.TypeOf() to get the type.
 	Default any    `json:"default"`
 }
 
