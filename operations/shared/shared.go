@@ -56,30 +56,27 @@ func MakeTableWithColumns(columns []string) (fs.Table, error) {
 	return tbl, nil
 }
 
-func MakeTableFromTable(columnIndexes []int, rowIndexes []int, table fs.Table) (fs.Table, error) {
+func MakeTableFromTable(columnIndices []int, rowIndices []int, table fs.Table) (fs.Table, error) {
 	retTable := fs.Table{}
-	if len(columnIndexes) == 0 {
+	if len(columnIndices) == 0 {
 		return fs.Table{}, nil
 	}
-	retTable = retTable.SetColumns(make([]fs.Column, len(table.GetColumns())))
-	for i, column := range table.GetColumns() {
-		if column.Name == "*" {
-			retTable = retTable.SetColumns(table.GetColumns())
-			break
-		}
-		columns := retTable.GetColumns()
-		columns[i].Name = column.Name
-		columns[i].Type = column.Type
-		retTable = retTable.SetColumns(columns)
+	retTable = retTable.SetColumns(make([]fs.Column, len(columnIndices)))
+	columns := retTable.GetColumns()
+	columnsOld := table.GetColumns()
+	for i, j := range columnIndices {
+		columns[i].Name = columnsOld[j].Name
+		columns[i].Type = columnsOld[j].Type
 	}
-	rows := table.GetRows()
-	rowsNew := make([][]interface{}, len(rowIndexes))
-	for i := range rowIndexes {
-		for j := range columnIndexes {
-			rowsNew[i] = append(rowsNew[i], rows[i][j])
+	retTable = retTable.SetColumns(columns)
+	rows := make([][]interface{}, len(rowIndices))
+	rowsOld := table.GetRows()
+	for _, i := range rowIndices {
+		for _, j := range columnIndices {
+			rows[i] = append(rows[i], rowsOld[i][j])
 		}
 	}
-	return retTable.SetRows(rowsNew)
+	return retTable.SetRows(rows)
 }
 
 func SelectTable(tableName string, db string, config fs.Conf) (fs.Table, error) {
@@ -94,37 +91,26 @@ func SelectTable(tableName string, db string, config fs.Conf) (fs.Table, error) 
 	return table, errors.New("table not found")
 }
 
-func SelectRows() {
-
-}
-
 func SelectColumns(columnNames []string, table fs.Table) ([]int, error) {
 	if len(columnNames) == 0 {
 		return nil, errors.New("no columns specified")
 	}
-	indexes := make([]int, 0)
+	Indices := make([]int, 0)
 	for _, columnName := range columnNames {
 		if columnName == "*" {
 			for i := 0; i < len(table.GetColumns()); i++ {
-				indexes = append(indexes, i)
+				Indices = append(Indices, i)
 			}
-			return indexes, nil
+			return Indices, nil
 		}
 		for i, column := range table.GetColumns() {
 			if columnName == column.Name {
-				indexes = append(indexes, i)
+				Indices = append(Indices, i)
+				break
 			}
 		}
 	}
-	return indexes, nil
-}
-
-func ModifyDB() {
-
-}
-
-func ModifyTable() {
-
+	return Indices, nil
 }
 
 func ModifyRow() {

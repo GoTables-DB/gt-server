@@ -74,7 +74,8 @@ func post(w http.ResponseWriter, table fs.Table, err error) {
 	if err != nil {
 		// TODO: Handle errors
 		// Temporary error code
-		w.WriteHeader(500)
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
 	} else {
 		jsonErr := sendTable(table, w, true)
 		if jsonErr != nil {
