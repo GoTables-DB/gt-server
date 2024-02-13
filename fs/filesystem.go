@@ -12,19 +12,19 @@ import (
 )
 
 type Column struct {
-	Name    string `json:"name"`
-	Type    any    `json:"type"` // Any value of a specific datatype. reflect.TypeOf() to get the type.
-	Default any    `json:"default"`
+	Name    string       `json:"name"`
+	Type    reflect.Type `json:"type"`
+	Default any          `json:"default"`
 }
 
 type TableJSON struct {
-	Columns []Column        `json:"columns"`
-	Rows    [][]interface{} `json:"rows"`
+	Columns []Column `json:"columns"`
+	Rows    [][]any  `json:"rows"`
 }
 
 type Table struct {
 	columns []Column
-	rows    [][]interface{} // Row 1 for defaults
+	rows    [][]any
 }
 
 type Conf struct {
@@ -44,28 +44,28 @@ type Conf struct {
 	// MaxConnections int `json:"conn_max"`
 }
 
-func DetermineDatatype(datatype string) (any, error) {
-	var ret any
+func DetermineDatatype(datatype string) (reflect.Type, error) {
+	var ret reflect.Type
 	var err error
 	switch datatype {
 	// String
 	case "str":
-		ret = ""
+		ret = reflect.TypeOf("")
 	// Integer
 	case "int":
-		ret = 0
+		ret = reflect.TypeOf(0)
 	// Float
 	case "flt":
-		ret = 0.0
+		ret = reflect.TypeOf(0.0)
 	// Boolean
 	case "bol":
-		ret = false
+		ret = reflect.TypeOf(false)
 	// Date
 	case "dat":
-		ret = time.Time{}
+		ret = reflect.TypeOf(time.Time{})
 	// Table
 	case "tab":
-		ret = Table{}
+		ret = reflect.TypeOf(Table{})
 	default:
 		err = errors.New("unknown datatype")
 	}
@@ -93,7 +93,7 @@ func (t Table) SetRows(rows [][]interface{}) (Table, error) {
 			return Table{}, errors.New("row length of row " + strconv.Itoa(i) + " is invalid")
 		}
 		for j, cell := range row {
-			if reflect.TypeOf(cell) != reflect.TypeOf(t.columns[j].Type) {
+			if reflect.TypeOf(cell) != t.columns[j].Type {
 				return Table{}, errors.New("type of cell " + strconv.Itoa(j) + " in row " + strconv.Itoa(i) + " is invalid")
 			}
 		}

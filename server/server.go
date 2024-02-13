@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"git.jereileu.ch/gotables/server/gt-server/fs"
 	"git.jereileu.ch/gotables/server/gt-server/operations"
+	"git.jereileu.ch/gotables/server/gt-server/operations/shared"
 	"log"
 	"net/http"
+	"reflect"
 	"strconv"
 )
 
@@ -58,9 +60,7 @@ func get(w http.ResponseWriter, table fs.Table, err error) {
 
 func head(w http.ResponseWriter, table fs.Table, err error) {
 	if err != nil {
-		// TODO: Handle errors
-		// Temporary error code
-		w.WriteHeader(500)
+		writeError(w, err)
 	} else {
 		jsonErr := sendTable(table, w, false)
 		if jsonErr != nil {
@@ -72,10 +72,7 @@ func head(w http.ResponseWriter, table fs.Table, err error) {
 
 func post(w http.ResponseWriter, table fs.Table, err error) {
 	if err != nil {
-		// TODO: Handle errors
-		// Temporary error code
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
+		writeError(w, err)
 	} else {
 		jsonErr := sendTable(table, w, true)
 		if jsonErr != nil {
@@ -87,9 +84,7 @@ func post(w http.ResponseWriter, table fs.Table, err error) {
 
 func put(w http.ResponseWriter, table fs.Table, err error) {
 	if err != nil {
-		// TODO: Handle errors
-		// Temporary error code
-		w.WriteHeader(500)
+		writeError(w, err)
 	} else {
 		jsonErr := sendTable(table, w, true)
 		if jsonErr != nil {
@@ -101,9 +96,7 @@ func put(w http.ResponseWriter, table fs.Table, err error) {
 
 func del(w http.ResponseWriter, table fs.Table, err error) {
 	if err != nil {
-		// TODO: Handle errors
-		// Temporary error code
-		w.WriteHeader(500)
+		writeError(w, err)
 	} else {
 		jsonErr := sendTable(table, w, true)
 		if jsonErr != nil {
@@ -138,4 +131,25 @@ func sendTable(data fs.Table, w http.ResponseWriter, withBody bool) error {
 		w.WriteHeader(200)
 	}
 	return nil
+}
+
+func writeError(w http.ResponseWriter, err error) {
+	columns := []fs.Column{{Name: "Databases", Type: reflect.TypeOf("")}}
+	rows := make([][]any, 0)
+	rows = append(rows, []any{err.Error()})
+	table, err := shared.MakeTable(columns, rows)
+	if err != nil {
+		w.WriteHeader(500)
+	} else {
+		// w.WriteHeader(err.Status)
+		w.WriteHeader(500)
+		tbl, err := json.Marshal(fs.Ttoj(table))
+		if err != nil {
+			w.WriteHeader(500)
+		}
+		_, err = w.Write(tbl)
+		if err != nil {
+			w.WriteHeader(500)
+		}
+	}
 }

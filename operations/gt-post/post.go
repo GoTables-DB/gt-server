@@ -4,6 +4,7 @@ import (
 	"errors"
 	"git.jereileu.ch/gotables/server/gt-server/fs"
 	"git.jereileu.ch/gotables/server/gt-server/operations/shared"
+	"reflect"
 	"strings"
 )
 
@@ -21,7 +22,7 @@ func Post(query []string, config fs.Conf) (fs.Table, error) {
 		if err != nil {
 			return fs.Table{}, err
 		}
-		columns := []fs.Column{{Name: "Databases", Type: "string"}}
+		columns := []fs.Column{{Name: "Databases", Type: reflect.TypeOf("")}}
 		rows := make([][]interface{}, 0)
 		for _, db := range dbs {
 			rows = append(rows, []interface{}{db})
@@ -45,7 +46,7 @@ func Post(query []string, config fs.Conf) (fs.Table, error) {
 			if err != nil {
 				return fs.Table{}, err
 			}
-			columns := []fs.Column{{Name: "Tables", Type: "string"}}
+			columns := []fs.Column{{Name: "Tables", Type: reflect.TypeOf("")}}
 			rows := make([][]interface{}, 0)
 			for _, table := range tables {
 				rows = append(rows, []interface{}{table})
