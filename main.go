@@ -19,7 +19,7 @@ func main() {
 	}
 	// Start server
 	go server.Run(config)
-	log.Println("==================== GoTables " + VERSION + " ====================")
+	log.Println("==================== GoTables server " + VERSION + " ====================")
 	if config.HTTPSMode {
 		log.Println("Started server at " + "https://127.0.0.1" + config.Port)
 	} else {
@@ -28,7 +28,7 @@ func main() {
 	log.Println("Logs are stored in " + config.LogDir)
 	log.Println("Press 'Ctrl' + 'C' to stop this program")
 	end := ""
-	for i := 0; i < 51+len(VERSION); i++ {
+	for i := 0; i < 58+len(VERSION); i++ {
 		end += "="
 	}
 	log.Println(end)
