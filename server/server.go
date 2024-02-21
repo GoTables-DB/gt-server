@@ -13,28 +13,17 @@ import (
 
 func Run(config fs.Conf) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
-			table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.Query().Get("query"), config)
-			get(w, table, err)
-		} else if r.Method == http.MethodHead {
-			table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.Query().Get("query"), config)
-			head(w, table, err)
-		} else if r.Method == http.MethodPost {
-			if checkSyntaxSQL(r) {
-				table, err := operations.SQLSyntax(r.Method, r.URL.Path, r.URL.Query().Get("query"), config)
-				post(w, table, err)
-			} else {
-				table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.Query().Get("query"), config)
-				post(w, table, err)
-			}
-		} else if r.Method == http.MethodPut {
-			table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.Query().Get("query"), config)
-			put(w, table, err)
-		} else if r.Method == http.MethodDelete {
-			table, err := operations.GTSyntax(r.Method, r.URL.Path, r.URL.Query().Get("query"), config)
-			del(w, table, err)
+		var table fs.Table
+		var err error
+		if checkSyntaxSQL(r) {
+			table, err = operations.SQLSyntax(r.Method, r.URL.Path, r.URL.Query().Get("query"), config)
 		} else {
-			w.WriteHeader(405)
+			table, err = operations.GTSyntax(r.Method, r.URL.Path, r.URL.Query().Get("query"), config)
+		}
+		if r.Method == http.MethodHead {
+			respond(w, false, table, err)
+		} else {
+			respond(w, true, table, err)
 		}
 	})
 	if config.HTTPSMode {
@@ -44,63 +33,17 @@ func Run(config fs.Conf) {
 	}
 }
 
-func get(w http.ResponseWriter, table fs.Table, err error) {
+func respond(w http.ResponseWriter, body bool, table fs.Table, err error) {
 	if err != nil {
-		// TODO: Handle errors
-		// Temporary error code
-		w.WriteHeader(500)
+		respondError(w, err)
 	} else {
-		jsonErr := sendTable(table, w, true)
-		if jsonErr != nil {
-			log.Println(jsonErr)
-			w.WriteHeader(500)
+		if body {
+			err = respondTable(table, w, true)
+		} else {
+			err = respondTable(table, w, false)
 		}
-	}
-}
-
-func head(w http.ResponseWriter, table fs.Table, err error) {
-	if err != nil {
-		writeError(w, err)
-	} else {
-		jsonErr := sendTable(table, w, false)
-		if jsonErr != nil {
-			log.Println(jsonErr)
-			w.WriteHeader(500)
-		}
-	}
-}
-
-func post(w http.ResponseWriter, table fs.Table, err error) {
-	if err != nil {
-		writeError(w, err)
-	} else {
-		jsonErr := sendTable(table, w, true)
-		if jsonErr != nil {
-			log.Println(jsonErr)
-			w.WriteHeader(500)
-		}
-	}
-}
-
-func put(w http.ResponseWriter, table fs.Table, err error) {
-	if err != nil {
-		writeError(w, err)
-	} else {
-		jsonErr := sendTable(table, w, true)
-		if jsonErr != nil {
-			log.Println(jsonErr)
-			w.WriteHeader(500)
-		}
-	}
-}
-
-func del(w http.ResponseWriter, table fs.Table, err error) {
-	if err != nil {
-		writeError(w, err)
-	} else {
-		jsonErr := sendTable(table, w, true)
-		if jsonErr != nil {
-			log.Println(jsonErr)
+		if err != nil {
+			log.Println(err)
 			w.WriteHeader(500)
 		}
 	}
@@ -113,17 +56,17 @@ func checkSyntaxSQL(r *http.Request) bool {
 	return false
 }
 
-func sendTable(data fs.Table, w http.ResponseWriter, withBody bool) error {
+func respondTable(data fs.Table, w http.ResponseWriter, withBody bool) error {
 	jsonData := fs.Ttoj(data)
-	body, jsonErr := json.Marshal(jsonData)
-	if jsonErr != nil {
-		return jsonErr
+	body, err := json.Marshal(jsonData)
+	if err != nil {
+		return err
 	}
 	if withBody {
 		w.Header().Set("Content-Type", "application/json")
-		_, responseErr := w.Write(body)
-		if responseErr != nil {
-			return responseErr
+		_, err := w.Write(body)
+		if err != nil {
+			return err
 		}
 	} else {
 		w.Header().Set("Content-Type", "application/json")
@@ -133,7 +76,7 @@ func sendTable(data fs.Table, w http.ResponseWriter, withBody bool) error {
 	return nil
 }
 
-func writeError(w http.ResponseWriter, err error) {
+func respondError(w http.ResponseWriter, err error) {
 	columns := []fs.Column{{Name: "Databases", Type: reflect.TypeOf("")}}
 	rows := make([][]any, 0)
 	rows = append(rows, []any{err.Error()})
