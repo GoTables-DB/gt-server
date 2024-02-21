@@ -233,7 +233,7 @@ func ModifyTable(data Table, name string, db string, dir string) error {
 
 /// Load config ///
 
-func Config() (Conf, error) {
+func Config(location string) (Conf, error) {
 	// Defaults
 	config := Conf{
 		Port:            ":5678",
@@ -242,12 +242,14 @@ func Config() (Conf, error) {
 		EnableGTSyntax:  true,
 		EnableSQLSyntax: true,
 	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return Conf{}, err
+	if location == "" {
+		home, err := os.UserHomeDir()
+		if err == nil {
+			location = home + "/.config/gotables/config.json"
+		}
 	}
-	if _, err := os.Stat(home + "/.config/gotables/config.json"); err == nil {
-		confFile, fileErr := os.ReadFile(home + "/.config/gotables/config.json")
+	if _, err := os.Stat(location); err == nil {
+		confFile, fileErr := os.ReadFile(location)
 		if fileErr != nil {
 			return Conf{}, fileErr
 		}
