@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	CONFIG  = ""
-	VERSION = "0.2.0-beta1"
+	CONFIG  = "" // Change this const to point to the config.json file
+	VERSION = "0.2.0-beta2"
 )
 
 func main() {

@@ -77,7 +77,7 @@ func respondTable(data fs.Table, w http.ResponseWriter, withBody bool) error {
 }
 
 func respondError(w http.ResponseWriter, err error) {
-	columns := []fs.Column{{Name: "Databases", Type: reflect.TypeOf("")}}
+	columns := []fs.Column{{Name: "Error", Type: reflect.TypeOf("")}}
 	rows := make([][]any, 0)
 	rows = append(rows, []any{err.Error()})
 	table, err := shared.MakeTable(columns, rows)

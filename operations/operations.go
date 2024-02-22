@@ -22,9 +22,7 @@ func GTSyntax(method string, dir string, query string, config fs.Conf) (fs.Table
 	if !config.EnableGTSyntax {
 		return fs.Table{}, errors.New("gotables syntax is disabled on the server")
 	}
-	query = html.UnescapeString(query)
-	query = strings.TrimSpace(query)
-	querySlice := strings.Split(query, " ")
+	querySlice := getQuerySlice(query)
 	table, db, err := dirSplit(dir)
 	if err != nil {
 		return fs.Table{}, err
@@ -36,11 +34,10 @@ func GTSyntax(method string, dir string, query string, config fs.Conf) (fs.Table
 // Handle requests that use SQL syntax
 
 func SQLSyntax(method string, dir string, query string, config fs.Conf) (fs.Table, error) {
-	if !config.EnableGTSyntax {
+	if !config.EnableSQLSyntax {
 		return fs.Table{}, errors.New("sql syntax is disabled on the server")
 	}
-	query = strings.TrimSpace(query)
-	querySlice := strings.Split(query, " ")
+	querySlice := getQuerySlice(query)
 	table, db, err := dirSplit(dir)
 	if err != nil {
 		return fs.Table{}, err
@@ -49,7 +46,8 @@ func SQLSyntax(method string, dir string, query string, config fs.Conf) (fs.Tabl
 	return retTable, retError
 }
 
-// / Request operations ///
+/// Request operations ///
+
 func dirSplit(dir string) (string, string, error) {
 	dir = strings.TrimPrefix(dir, "/")
 	dir = strings.TrimSuffix(dir, "/")
@@ -67,10 +65,13 @@ func dirSplit(dir string) (string, string, error) {
 	return table, db, nil
 }
 
+func getQuerySlice(query string) []string {
+	query = html.UnescapeString(query)
+	query = strings.TrimSpace(query)
+	return strings.Split(query, " ")
+}
+
 func gtQuery(method string, query []string, table string, db string, config fs.Conf) (fs.Table, error) {
-	if len(query) == 0 {
-		return fs.Table{}, errors.New("empty query")
-	}
 	retTable := fs.Table{}
 	var retError error = nil
 	if method == http.MethodGet || method == http.MethodHead {
@@ -78,7 +79,7 @@ func gtQuery(method string, query []string, table string, db string, config fs.C
 	} else if method == http.MethodPut {
 		retTable, retError = gt_put.Put(table, db, config)
 	} else if method == http.MethodPost {
-		retTable, retError = gt_post.Post(query, config)
+		retTable, retError = gt_post.Post(query, table, db, config)
 	} else if method == http.MethodDelete {
 		retTable, retError = gt_del.Del(table, db, config)
 	} else {
@@ -88,9 +89,6 @@ func gtQuery(method string, query []string, table string, db string, config fs.C
 }
 
 func sqlQuery(method string, query []string, table string, db string, config fs.Conf) (fs.Table, error) {
-	if len(query) == 0 {
-		return fs.Table{}, errors.New("empty query")
-	}
 	retTable := fs.Table{}
 	var retError error = nil
 	if method == http.MethodPost {
@@ -101,7 +99,8 @@ func sqlQuery(method string, query []string, table string, db string, config fs.
 	return retTable, retError
 }
 
-// / Operations on db/tables ///
+/// Operations on db/tables ///
+
 func login() {
 
 }
