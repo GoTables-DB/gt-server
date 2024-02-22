@@ -88,10 +88,7 @@ func Post(query []string, table string, db string, config fs.Conf) (fs.Table, er
 				return fs.Table{}, errors.New("invalid syntax")
 			}
 		case "create":
-			if len(query) != 1 {
-				if len(query) < 3 {
-					return fs.Table{}, errors.New("invalid syntax")
-				}
+			if len(query) > 1 {
 				retTable, retError = makeTableWithColumns(query[1:], table, db, config.Dir)
 			} else {
 				retError = fs.NewTable(table, db, config.Dir)
