@@ -28,24 +28,24 @@ func MakeTableWithColumns(columns []string) (fs.Table, error) {
 			if len(colSplit) != 2 {
 				return fs.Table{}, errors.New("internal server error")
 			}
-			datatype, err := fs.DetermineDatatype(colSplit[1])
-			if err != nil {
-				return fs.Table{}, err
+			datatype := fs.DetermineDatatype(colSplit[1])
+			if datatype == nil {
+				return fs.Table{}, errors.New("unknown datatype")
 			}
 			col.Name = colSplit[0]
-			col.Type = datatype
-			col.Default = datatype
+			col.Type = colSplit[1]
+			col.Default = nil
 		case 2:
 			colSplit := strings.Split(column, ":")
 			if len(colSplit) != 3 {
 				return fs.Table{}, errors.New("internal server error")
 			}
-			datatype, err := fs.DetermineDatatype(colSplit[1])
-			if err != nil {
-				return fs.Table{}, err
+			datatype := fs.DetermineDatatype(colSplit[1])
+			if datatype == nil {
+				return fs.Table{}, errors.New("unknown datatype")
 			}
 			col.Name = colSplit[0]
-			col.Type = datatype
+			col.Type = colSplit[1]
 			col.Default = colSplit[2]
 		default:
 			return fs.Table{}, errors.New("illegal column at index " + strconv.Itoa(i))

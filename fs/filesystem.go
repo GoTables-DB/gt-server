@@ -12,9 +12,9 @@ import (
 )
 
 type Column struct {
-	Name    string       `json:"name"`
-	Type    reflect.Type `json:"type"`
-	Default any          `json:"default"`
+	Name    string `json:"name"`
+	Type    string `json:"type"`
+	Default any    `json:"default"`
 }
 
 type TableJSON struct {
@@ -44,9 +44,8 @@ type Conf struct {
 	// MaxConnections int `json:"conn_max"`
 }
 
-func DetermineDatatype(datatype string) (reflect.Type, error) {
+func DetermineDatatype(datatype string) reflect.Type {
 	var ret reflect.Type
-	var err error
 	switch datatype {
 	// String
 	case "str":
@@ -67,9 +66,9 @@ func DetermineDatatype(datatype string) (reflect.Type, error) {
 	case "tab":
 		ret = reflect.TypeOf(Table{})
 	default:
-		err = errors.New("unknown datatype")
+		ret = nil
 	}
-	return ret, err
+	return ret
 }
 
 /// Methods for Table ///
@@ -93,7 +92,7 @@ func (t Table) SetRows(rows [][]interface{}) (Table, error) {
 			return Table{}, errors.New("row length of row " + strconv.Itoa(i) + " is invalid")
 		}
 		for j, cell := range row {
-			if reflect.TypeOf(cell) != t.columns[j].Type {
+			if reflect.TypeOf(cell) != DetermineDatatype(t.columns[j].Type) {
 				return Table{}, errors.New("type of cell " + strconv.Itoa(j) + " in row " + strconv.Itoa(i) + " is invalid")
 			}
 		}

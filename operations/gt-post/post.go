@@ -4,7 +4,6 @@ import (
 	"errors"
 	"git.jereileu.ch/gotables/server/gt-server/fs"
 	"git.jereileu.ch/gotables/server/gt-server/operations/shared"
-	"reflect"
 	"strings"
 )
 
@@ -43,7 +42,7 @@ func Post(query []string, table string, db string, config fs.Conf) (fs.Table, er
 			if len(query) != 1 {
 				return fs.Table{}, errors.New("invalid syntax")
 			}
-			tables, err := fs.GetTables(query[1], config.Dir)
+			tables, err := fs.GetTables(db, config.Dir)
 			if err != nil {
 				return fs.Table{}, err
 			}
@@ -133,7 +132,7 @@ func makeTableWithColumns(columns []string, table string, db string, dir string)
 
 // Used to display names of databases or names of tables in a db
 func simpleTable(colName string, rows []string) (fs.Table, error) {
-	columns := []fs.Column{{Name: colName, Type: reflect.TypeOf("")}}
+	columns := []fs.Column{{Name: colName, Type: "str"}}
 	rowSlice := make([][]interface{}, 0)
 	for _, row := range rows {
 		rowSlice = append(rowSlice, []interface{}{row})

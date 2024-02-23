@@ -3,7 +3,6 @@ package gt_get
 import (
 	"git.jereileu.ch/gotables/server/gt-server/fs"
 	"git.jereileu.ch/gotables/server/gt-server/operations/shared"
-	"reflect"
 )
 
 func Get(table string, db string, config fs.Conf) (fs.Table, error) {
@@ -26,7 +25,7 @@ func getDBs(dir string) (fs.Table, error) {
 	if err != nil {
 		return fs.Table{}, err
 	}
-	columns := []fs.Column{{Name: "Databases", Type: reflect.TypeOf("")}}
+	columns := []fs.Column{{Name: "Databases", Type: "str"}}
 	rows := make([][]any, 0)
 	for _, db := range dbs {
 		rows = append(rows, []any{db})
@@ -39,7 +38,7 @@ func getTables(db string, dir string) (fs.Table, error) {
 	if err != nil {
 		return fs.Table{}, err
 	}
-	columns := []fs.Column{{Name: "Tables", Type: reflect.TypeOf("")}}
+	columns := []fs.Column{{Name: "Tables", Type: "str"}}
 	rows := make([][]any, 0)
 	for _, table := range tables {
 		rows = append(rows, []any{table})
