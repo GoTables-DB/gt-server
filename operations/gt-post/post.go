@@ -153,13 +153,17 @@ func showTable(columns string, table fs.Table, condition []string) (fs.Table, er
 		for i := 0; i < len(table.GetRows()); i++ {
 			var results []bool
 			for j := 0; j < (len(condition)+1)/4; j++ {
-				result, err := checkCondition(i, table, condition[i*4:3+i*4])
+				result, err := checkCondition(i, table, condition[j*4:3+j*4])
 				if err != nil {
 					return fs.Table{}, err
 				}
 				results = append(results, result)
 			}
-			if checkResults(results, condition) {
+			var operators []string
+			for j := 3; j < len(condition); j += 4 {
+				operators = append(operators, condition[j])
+			}
+			if checkResults(results, operators) {
 				indices = append(indices, i)
 			}
 		}
@@ -180,28 +184,28 @@ func checkCondition(row int, table fs.Table, condition []string) (bool, error) {
 	}
 	cols := table.GetColumns()
 	rows := table.GetRows()
-	isString := []bool{
+	isVar := []bool{
 		strings.HasPrefix(condition[0], "\"") && strings.HasSuffix(condition[0], "\"") || strings.HasPrefix(condition[0], "'") && strings.HasSuffix(condition[0], "'"),
 		strings.HasPrefix(condition[2], "\"") && strings.HasSuffix(condition[2], "\"") || strings.HasPrefix(condition[2], "'") && strings.HasSuffix(condition[2], "'"),
 	}
 	var values []string
-	if !isString[0] {
+	if !isVar[0] {
 		col := getColumnIndex(condition[0], cols)
 		if col == -1 {
 			return false, errors.New("invalid condition: column " + condition[0] + " does not exist")
 		}
 		values = append(values, rows[row][col].(string))
 	} else {
-		values = append(values, condition[0])
+		values = append(values, trim(condition[0]))
 	}
-	if !isString[1] {
+	if !isVar[1] {
 		col := getColumnIndex(condition[2], cols)
 		if col == -1 {
 			return false, errors.New("invalid condition: column " + condition[2] + " does not exist")
 		}
 		values = append(values, rows[row][col].(string))
 	} else {
-		values = append(values, condition[2])
+		values = append(values, trim(condition[2]))
 	}
 	switch condition[1] {
 	case "==":
@@ -239,13 +243,9 @@ func checkCondition(row int, table fs.Table, condition []string) (bool, error) {
 	}
 }
 
-func checkResults(results []bool, condition []string) bool {
+func checkResults(results []bool, operators []string) bool {
 	if len(results) == 1 {
 		return results[0]
-	}
-	var operators []string
-	for i := 3; i < len(condition); i += 4 {
-		operators = append(operators, condition[i])
 	}
 	var res [][]bool
 	var currentRes []bool
@@ -260,10 +260,16 @@ func checkResults(results []bool, condition []string) bool {
 	}
 	var resultsFinal []bool
 	for _, result := range res {
+		var end bool
 		for i := 0; i < len(result); i++ {
 			if !result[i] {
 				resultsFinal = append(resultsFinal, false)
+				end = true
+				break
 			}
+		}
+		if !end {
+			resultsFinal = append(resultsFinal, true)
 		}
 	}
 	for _, resultFinal := range resultsFinal {
@@ -281,4 +287,18 @@ func getColumnIndex(name string, cols []fs.Column) int {
 		}
 	}
 	return -1
+}
+
+func trim(str string) string {
+	if strings.HasPrefix(str, "\"") {
+		str = strings.TrimPrefix(str, "\"")
+	} else {
+		str = strings.TrimPrefix(str, "'")
+	}
+	if strings.HasSuffix(str, "\"") {
+		str = strings.TrimSuffix(str, "\"")
+	} else {
+		str = strings.TrimSuffix(str, "'")
+	}
+	return str
 }

@@ -71,9 +71,9 @@ func MakeTableFromTable(columnIndices []int, rowIndices []int, table fs.Table) (
 	retTable = retTable.SetColumns(columns)
 	rows := make([][]interface{}, len(rowIndices))
 	rowsOld := table.GetRows()
-	for _, i := range rowIndices {
-		for _, j := range columnIndices {
-			rows[i] = append(rows[i], rowsOld[i][j])
+	for i, j := range rowIndices {
+		for _, k := range columnIndices {
+			rows[i] = append(rows[i], rowsOld[j][k])
 		}
 	}
 	return retTable.SetRows(rows)
@@ -95,22 +95,28 @@ func SelectColumns(columnNames []string, table fs.Table) ([]int, error) {
 	if len(columnNames) == 0 {
 		return nil, errors.New("no columns specified")
 	}
-	Indices := make([]int, 0)
+	indices := make([]int, 0)
 	for _, columnName := range columnNames {
 		if columnName == "*" {
+			indicesAll := make([]int, 0)
 			for i := 0; i < len(table.GetColumns()); i++ {
-				Indices = append(Indices, i)
+				indicesAll = append(indicesAll, i)
 			}
-			return Indices, nil
+			return indicesAll, nil
 		}
+		var inTable bool
 		for i, column := range table.GetColumns() {
 			if columnName == column.Name {
-				Indices = append(Indices, i)
+				indices = append(indices, i)
+				inTable = true
 				break
 			}
 		}
+		if !inTable {
+			return []int{}, errors.New("column " + columnName + " does not exist")
+		}
 	}
-	return Indices, nil
+	return indices, nil
 }
 
 func ModifyRow() {
