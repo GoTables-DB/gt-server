@@ -1,3 +1,5 @@
+![GoTables logo](assets/logo.png)
+
 # GoTables server
 
 GoTables is an open-source database management system written in Go released under the MIT license. It allows interaction with the server using SQL or the GoTables query language. You can learn how to use GoTables [here](https://docs.gotables.link/getting-started).
