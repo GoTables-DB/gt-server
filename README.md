@@ -17,7 +17,7 @@ go install git.jereileu.ch/gotables/server/gt-server@latest
 Alternatively you can download the attached binary for your platform in the release you would like to use.
 
 ### Build from source
-You can also build from source. You need git and go installed for that.
+You can also build from source. You need `git` and `go` installed for that.
 
 ```bash
 git clone https://git.jereileu.ch/gotables/server/gt-server.git
