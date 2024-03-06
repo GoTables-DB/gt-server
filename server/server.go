@@ -2,22 +2,33 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"git.jereileu.ch/gotables/server/gt-server/fs"
 	"git.jereileu.ch/gotables/server/gt-server/operations"
 	"git.jereileu.ch/gotables/server/gt-server/operations/shared"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
 )
 
+type body struct {
+	Query     string `json:"query"`
+	SessionId string `json:"session_id"`
+}
+
 func Run(config fs.Conf) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		var table fs.Table
 		var err error
+		q, err := query(r)
+		if err != nil {
+			respondError(w, errors.New("failed to read request body"))
+		}
 		if checkSyntaxSQL(r) {
-			table, err = operations.SQLSyntax(r.Method, r.URL.Path, r.URL.Query().Get("query"), config)
+			table, err = operations.SQLSyntax(r.Method, r.URL.Path, q, config)
 		} else {
-			table, err = operations.GTSyntax(r.Method, r.URL.Path, r.URL.Query().Get("query"), config)
+			table, err = operations.GTSyntax(r.Method, r.URL.Path, q, config)
 		}
 		if r.Method == http.MethodHead {
 			respond(w, false, table, err)
@@ -84,7 +95,7 @@ func respondError(w http.ResponseWriter, err error) {
 		w.WriteHeader(500)
 	} else {
 		// w.WriteHeader(err.Status)
-		w.WriteHeader(500)
+		w.WriteHeader(404)
 		tbl, err := json.Marshal(fs.Ttoj(table))
 		if err != nil {
 			w.WriteHeader(500)
@@ -94,4 +105,18 @@ func respondError(w http.ResponseWriter, err error) {
 			w.WriteHeader(500)
 		}
 	}
+}
+
+func query(r *http.Request) (string, error) {
+	defer r.Body.Close()
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		return "", err
+	}
+	queryStruct := body{}
+	err = json.Unmarshal(data, &queryStruct)
+	if err != nil {
+		return "", err
+	}
+	return queryStruct.Query, nil
 }
