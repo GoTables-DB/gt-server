@@ -63,7 +63,7 @@ func DetermineDatatype(datatype string) reflect.Type {
 	case "dat":
 		ret = reflect.TypeOf(time.Time{})
 	// Table
-	case "tab":
+	case "tbl":
 		ret = reflect.TypeOf(Table{})
 	default:
 		ret = nil
