@@ -8,10 +8,16 @@ import (
 	"strings"
 )
 
+type T interface {
+	string | int64
+}
+
 func MakeTable(columns []fs.Column, rows [][]interface{}) (fs.Table, error) {
 	table := fs.Table{}
-	var err error = nil
-	table = table.SetColumns(columns)
+	table, err := table.SetColumns(columns)
+	if err != nil {
+		return fs.Table{}, err
+	}
 	table, err = table.SetRows(rows)
 	return table, err
 }
@@ -52,8 +58,8 @@ func MakeTableWithColumns(columns []string) (fs.Table, error) {
 		}
 		cols = append(cols, col)
 	}
-	tbl := fs.Table{}.SetColumns(cols)
-	return tbl, nil
+	tbl, err := fs.Table{}.SetColumns(cols)
+	return tbl, err
 }
 
 func MakeTableFromTable(columnIndices []int, rowIndices []int, table fs.Table) (fs.Table, error) {
@@ -61,14 +67,20 @@ func MakeTableFromTable(columnIndices []int, rowIndices []int, table fs.Table) (
 	if len(columnIndices) == 0 {
 		return fs.Table{}, nil
 	}
-	retTable = retTable.SetColumns(make([]fs.Column, len(columnIndices)))
+	retTable, err := retTable.SetColumns(make([]fs.Column, len(columnIndices)))
+	if err != nil {
+		return fs.Table{}, err
+	}
 	columns := retTable.GetColumns()
 	columnsOld := table.GetColumns()
 	for i, j := range columnIndices {
 		columns[i].Name = columnsOld[j].Name
 		columns[i].Type = columnsOld[j].Type
 	}
-	retTable = retTable.SetColumns(columns)
+	retTable, err = retTable.SetColumns(columns)
+	if err != nil {
+		return fs.Table{}, err
+	}
 	rows := make([][]interface{}, len(rowIndices))
 	rowsOld := table.GetRows()
 	for i, j := range rowIndices {
@@ -168,8 +180,23 @@ func AddRow() {
 
 }
 
-func AddColumn() {
-
+func AddColumn(column fs.Column, table fs.Table) (fs.Table, error) {
+	columns := table.GetColumns()
+	rows := table.GetRows()
+	datatype := fs.DetermineDatatype(column.Type)
+	if datatype == nil {
+		return fs.Table{}, errors.New("unknown datatype: " + column.Type)
+	}
+	tbl, err := table.SetColumns(append(columns, column))
+	if err != nil {
+		return fs.Table{}, err
+	}
+	defaultValue := fs.DefaultValue(column.Type)
+	for i := 0; i < len(rows); i++ {
+		rows[i] = append(rows[i], defaultValue)
+	}
+	tbl, err = tbl.SetRows(rows)
+	return tbl, err
 }
 
 func DeleteDB(db, dir string) error {

@@ -2,6 +2,7 @@ package gt_post
 
 import (
 	"errors"
+	"fmt"
 	"git.jereileu.ch/gotables/server/gt-server/fs"
 	"git.jereileu.ch/gotables/server/gt-server/operations/shared"
 	"strings"
@@ -108,7 +109,145 @@ func Post(query []string, table string, db string, config fs.Conf) (fs.Table, er
 			}
 			retError = fs.DeleteTable(table, db, config.Dir)
 		case "column":
+			if len(query) < 3 {
+				return fs.Table{}, errors.New("invalid syntax")
+			}
+			switch query[1] {
+			case "show":
+				if len(query) != 3 {
+					return fs.Table{}, errors.New("invalid syntax")
+				}
+				tbl, err := fs.GetTable(table, db, config.Dir)
+				if err != nil {
+					return fs.Table{}, err
+				}
+				cols := strings.Split(query[2], ":")
+				retTable, err = retTable.SetColumns([]fs.Column{{Name: "Name", Type: "str", Default: nil}, {Name: "Type", Type: "str", Default: nil}, {Name: "Default", Type: "str", Default: nil}})
+				if err != nil {
+					return fs.Table{}, err
+				}
+				var indices []int
+				for i := 0; i < len(cols); i++ {
+					col := getColumnIndex(cols[i], tbl.GetColumns())
+					if col != -1 {
+						indices = append(indices, col)
+					}
+				}
+				var rows [][]any
+				for i := 0; i < len(indices); i++ {
+					col := tbl.GetColumns()[indices[i]]
+					rows = append(rows, []any{col.Name, col.Type, fmt.Sprint(col.Default)})
+				}
+				retTable, retError = retTable.SetRows(rows)
+			case "create":
+				if len(query) != 3 {
+					return fs.Table{}, errors.New("invalid syntax")
+				}
+				tbl, err := fs.GetTable(table, db, config.Dir)
+				if err != nil {
+					return fs.Table{}, err
+				}
+				colSlice := strings.Split(query[2], ":")
+				col := fs.Column{}
+				switch len(colSlice) {
+				case 2:
+					col.Name = colSlice[0]
+					col.Type = colSlice[1]
+				case 3:
+					col.Name = colSlice[0]
+					col.Type = colSlice[1]
+					col.Default = colSlice[2]
+				default:
+					return fs.Table{}, errors.New("invalid syntax")
+				}
+				tbl, err = shared.AddColumn(col, tbl)
+				if err != nil {
+					return fs.Table{}, err
+				}
+				err = fs.ModifyTable(tbl, table, db, config.Dir)
+				retTable, retError = tbl, err
+			case "move":
+				if len(query) != 4 {
+					return fs.Table{}, errors.New("invalid syntax")
+				}
+				tbl, err := fs.GetTable(table, db, config.Dir)
+				if err != nil {
+					return fs.Table{}, err
+				}
+				cols := tbl.GetColumns()
+				index := getColumnIndex(query[2], cols)
+				if index == -1 {
+					return fs.Table{}, errors.New(query[2] + " is not a valid column")
+				}
+				cols[index].Name = query[3]
+				tbl, err = tbl.SetColumns(cols)
+				if err != nil {
+					return fs.Table{}, err
+				}
+				retError = fs.ModifyTable(tbl, table, db, config.Dir)
+			case "copy":
+				if len(query) != 4 {
+					return fs.Table{}, errors.New("invalid syntax")
+				}
+				tbl, err := fs.GetTable(table, db, config.Dir)
+				if err != nil {
+					return fs.Table{}, err
+				}
+				cols := tbl.GetColumns()
+				index := getColumnIndex(query[2], cols)
+				if index == -1 {
+					return fs.Table{}, errors.New(query[2] + " is not a valid column")
+				}
+				col := cols[index]
+				col.Name = query[3]
+				cols = append(cols, col)
+				tbl, err = tbl.SetColumns(cols)
+				if err != nil {
+					return fs.Table{}, err
+				}
+				rows := tbl.GetRows()
+				for i := 0; i < len(rows); i++ {
+					rows[i] = append(rows[i], rows[i][index])
+				}
+				tbl, err = tbl.SetRows(rows)
+				if err != nil {
+					return fs.Table{}, err
+				}
+				retError = fs.ModifyTable(tbl, table, db, config.Dir)
+			case "delete":
+				if len(query) != 3 {
+					return fs.Table{}, errors.New("invalid syntax")
+				}
+				tbl, err := fs.GetTable(table, db, config.Dir)
+				if err != nil {
+					return fs.Table{}, err
+				}
+				cols := tbl.GetColumns()
+				index := getColumnIndex(query[2], cols)
+				if index == -1 {
+					return fs.Table{}, errors.New(query[2] + " is not a valid column")
+				}
+				cols = append(cols[:index], cols[index+1:]...)
+				tbl, err = tbl.SetColumns(cols)
+				if err != nil {
+					return fs.Table{}, err
+				}
+				rows := tbl.GetRows()
+				for i := 0; i < len(rows); i++ {
+					rows[i] = append(rows[i], rows[i][index])
+				}
+				tbl, err = tbl.SetRows(rows)
+				if err != nil {
+					return fs.Table{}, err
+				}
+				retError = fs.ModifyTable(tbl, table, db, config.Dir)
+			default:
+				retError = errors.New("invalid syntax")
+			}
 		case "row":
+			if len(query) < 3 {
+				return fs.Table{}, errors.New("invalid syntax")
+			}
 		default:
 			retError = errors.New("invalid syntax")
 		}

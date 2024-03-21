@@ -71,6 +71,33 @@ func DetermineDatatype(datatype string) reflect.Type {
 	return ret
 }
 
+func DefaultValue(datatype string) any {
+	var ret any
+	switch datatype {
+	// String
+	case "str":
+		ret = ""
+	// Integer
+	case "int":
+		ret = 0
+	// Float
+	case "flt":
+		ret = 0.0
+	// Boolean
+	case "bol":
+		ret = false
+	// Date
+	case "dat":
+		ret = time.Time{}
+	// Table
+	case "tbl":
+		ret = Table{}
+	default:
+		ret = nil
+	}
+	return ret
+}
+
 /// Methods for Table ///
 
 func (t Table) GetColumns() []Column {
@@ -81,9 +108,20 @@ func (t Table) GetRows() [][]interface{} {
 	return t.rows
 }
 
-func (t Table) SetColumns(columns []Column) Table {
+func (t Table) SetColumns(columns []Column) (Table, error) {
+	for i := 0; i < len(columns); i++ {
+		matches := 0
+		for j := 0; j < len(columns); j++ {
+			if columns[i].Name == columns[j].Name {
+				matches++
+			}
+		}
+		if matches != 1 {
+			return Table{}, errors.New("column names need to be unique")
+		}
+	}
 	t.columns = columns
-	return t
+	return t, nil
 }
 
 func (t Table) SetRows(rows [][]interface{}) (Table, error) {
@@ -106,8 +144,11 @@ func (t Table) SetRows(rows [][]interface{}) (Table, error) {
 // Jtot - JSON to Table
 func Jtot(j TableJSON) (Table, error) {
 	t := Table{}
-	t = t.SetColumns(j.Columns)
-	t, err := t.SetRows(j.Rows)
+	t, err := t.SetColumns(j.Columns)
+	if err != nil {
+		return Table{}, err
+	}
+	t, err = t.SetRows(j.Rows)
 	return t, err
 }
 
