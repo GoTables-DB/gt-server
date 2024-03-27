@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"git.jereileu.ch/gotables/server/gt-server/fs"
 	"git.jereileu.ch/gotables/server/gt-server/operations/shared"
+	"strconv"
 	"strings"
 )
 
@@ -247,6 +248,40 @@ func Post(query []string, table string, db string, config fs.Conf) (fs.Table, er
 		case "row":
 			if len(query) < 3 {
 				return fs.Table{}, errors.New("invalid syntax")
+			}
+			switch query[1] {
+			case "show":
+				if len(query) != 3 {
+					return fs.Table{}, errors.New("invalid syntax")
+				}
+				tbl, err := fs.GetTable(table, db, config.Dir)
+				if err != nil {
+					return fs.Table{}, err
+				}
+				rows := tbl.GetRows()
+				indicesSlice := strings.Split(query[2], ":")
+				indices := make([]int, 0)
+				for i := 0; i < len(indicesSlice); i++ {
+					index, err := strconv.Atoi(indicesSlice[i])
+					if err != nil {
+						return fs.Table{}, err
+					}
+					if index < 1 || index > len(rows) {
+						return fs.Table{}, errors.New("index " + indicesSlice[i] + " is out of range")
+					}
+					indices = append(indices, index-1)
+				}
+				rowsNew := make([][]any, 0)
+				for i := 0; i < len(indices); i++ {
+					rowsNew = append(rowsNew, rows[indices[i]])
+				}
+				retTable, retError = tbl.SetRows(rowsNew)
+			case "create":
+			case "copy":
+			case "move":
+			case "delete":
+			default:
+				retError = errors.New("invalid syntax")
 			}
 		default:
 			retError = errors.New("invalid syntax")
