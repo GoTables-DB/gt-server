@@ -277,9 +277,59 @@ func Post(query []string, table string, db string, config fs.Conf) (fs.Table, er
 				}
 				retTable, retError = tbl.SetRows(rowsNew)
 			case "create":
+				if len(query) < 3 {
+					return fs.Table{}, errors.New("invalid syntax")
+				}
+				tbl, err := fs.GetTable(table, db, config.Dir)
+				if err != nil {
+					return fs.Table{}, err
+				}
+				rows := tbl.GetRows()
+				rowSlice := strings.Split(query[2], ":")
+				row := make([]any, 0)
+				for i := 0; i < len(rowSlice); i++ {
+					row = append(row, rowSlice[i])
+				}
+				rows = append(rows, row)
+				retTable, retError = tbl.SetRows(rows)
 			case "copy":
-			case "move":
+				if len(query) < 3 {
+					return fs.Table{}, errors.New("invalid syntax")
+				}
+				tbl, err := fs.GetTable(table, db, config.Dir)
+				if err != nil {
+					return fs.Table{}, err
+				}
+				rows := tbl.GetRows()
+				index, err := strconv.Atoi(query[2])
+				if err != nil {
+					return fs.Table{}, err
+				}
+				if index < 1 || index > len(rows) {
+					return fs.Table{}, errors.New("index " + query[2] + " is out of range")
+				}
+				rows = append(rows, rows[index-1])
+				retTable, retError = tbl.SetRows(rows)
 			case "delete":
+				if len(query) < 3 {
+					return fs.Table{}, errors.New("invalid syntax")
+				}
+				tbl, err := fs.GetTable(table, db, config.Dir)
+				if err != nil {
+					return fs.Table{}, err
+				}
+				rows := tbl.GetRows()
+				index, err := strconv.Atoi(query[2])
+				if err != nil {
+					return fs.Table{}, err
+				}
+				if index < 1 || index > len(rows) {
+					return fs.Table{}, errors.New("index " + query[2] + " is out of range")
+				}
+				rows = append(rows[:index-1], rows[index:]...)
+				retTable, retError = tbl.SetRows(rows)
+			case "column": // Select cell
+				retTable, retError = fs.Table{}, errors.New("operations on cells not implemented yet")
 			default:
 				retError = errors.New("invalid syntax")
 			}

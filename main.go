@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	CONFIG  = "" // Change this const to point to the config.json file
+	CONFIG  = "" // Change this const to point to the config.json file if it is not in ~/.config/gotables/config.json
 	VERSION = "0.2.1"
 )
 
