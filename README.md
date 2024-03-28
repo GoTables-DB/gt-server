@@ -7,7 +7,7 @@ GoTables is an open-source database management system written in Go released und
 ## Installation
 
 ### Go install
-If you have go installed on your system, you can easily install gt-server with the following command.
+If you have `go` installed on your system, you can easily install `gt-server` with the following command.
 
 ```bash
 go install git.jereileu.ch/gotables/server/gt-server@latest
