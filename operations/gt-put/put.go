@@ -4,18 +4,19 @@ import (
 	"errors"
 	"git.jereileu.ch/gotables/server/gt-server/fs"
 	"git.jereileu.ch/gotables/server/gt-server/operations/shared"
+	"git.jereileu.ch/gotables/server/gt-server/table"
 )
 
-func Put(table string, db string, config fs.Conf) (fs.Table, error) {
-	retTable := fs.Table{}
+func Put(tbl string, db string, config fs.Conf) (table.Table, error) {
+	retTable := table.Table{}
 	var retError error = nil
 
 	if db == "" {
 		retError = errors.New("no database specified")
-	} else if table == "" {
+	} else if tbl == "" {
 		retError = shared.AddDB(db, config.Dir)
 	} else {
-		retError = shared.AddTable(table, db, config.Dir)
+		retError = shared.AddTable(tbl, db, config.Dir)
 	}
 
 	return retTable, retError

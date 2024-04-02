@@ -1,9 +1,12 @@
 package sql_post
 
-import "git.jereileu.ch/gotables/server/gt-server/fs"
+import (
+	"git.jereileu.ch/gotables/server/gt-server/fs"
+	"git.jereileu.ch/gotables/server/gt-server/table"
+)
 
-func Post(query []string, table string, db string, config fs.Conf) (fs.Table, error) {
-	retTable := fs.Table{}
+func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	retTable := table.Table{}
 	var retError error = nil
 	return retTable, retError
 }

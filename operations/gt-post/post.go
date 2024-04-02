@@ -5,68 +5,69 @@ import (
 	"fmt"
 	"git.jereileu.ch/gotables/server/gt-server/fs"
 	"git.jereileu.ch/gotables/server/gt-server/operations/shared"
+	"git.jereileu.ch/gotables/server/gt-server/table"
 	"strconv"
 	"strings"
 )
 
-func Post(query []string, table string, db string, config fs.Conf) (fs.Table, error) {
-	retTable := fs.Table{}
+func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	retTable := table.Table{}
 	var retError error
 
 	if len(query) < 1 {
-		return fs.Table{}, errors.New("invalid syntax")
+		return table.Table{}, errors.New("invalid syntax")
 	}
 	if db == "" {
 		switch strings.ToLower(query[0]) {
 		case "show":
 			if len(query) != 1 {
-				return fs.Table{}, errors.New("invalid syntax")
+				return table.Table{}, errors.New("invalid syntax")
 			}
 			dbs, err := fs.GetDBs(config.Dir)
 			if err != nil {
-				return fs.Table{}, err
+				return table.Table{}, err
 			}
 			retTable, retError = simpleTable("Databases", dbs)
 		case "user":
 			if len(query) != 0 {
-				return fs.Table{}, errors.New("invalid syntax")
+				return table.Table{}, errors.New("invalid syntax")
 			}
 		case "backup":
 			if len(query) != 0 {
-				return fs.Table{}, errors.New("invalid syntax")
+				return table.Table{}, errors.New("invalid syntax")
 			}
 		default:
 			retError = errors.New("invalid syntax")
 		}
-	} else if table == "" {
+	} else if tbl == "" {
 		switch strings.ToLower(query[0]) {
 		case "show":
 			if len(query) != 1 {
-				return fs.Table{}, errors.New("invalid syntax")
+				return table.Table{}, errors.New("invalid syntax")
 			}
 			tables, err := fs.GetTables(db, config.Dir)
 			if err != nil {
-				return fs.Table{}, err
+				return table.Table{}, err
 			}
 			retTable, retError = simpleTable("Tables", tables)
 		case "create":
 			if len(query) != 1 {
-				return fs.Table{}, errors.New("invalid syntax")
+				return table.Table{}, errors.New("invalid syntax")
 			}
-			retError = fs.NewDB(db, config.Dir)
+			retError = fs.AddDB(db, config.Dir)
 		case "move":
 			if len(query) != 2 {
-				return fs.Table{}, errors.New("invalid syntax")
+				return table.Table{}, errors.New("invalid syntax")
 			}
 			retError = fs.MoveDB(db, query[1], config.Dir)
 		case "copy":
 			if len(query) != 2 {
-				return fs.Table{}, errors.New("invalid syntax")
+				return table.Table{}, errors.New("invalid syntax")
 			}
 			retError = fs.CopyDB(db, query[1], config.Dir)
 		case "delete":
 			if len(query) != 1 {
-				return fs.Table{}, errors.New("invalid syntax")
+				return table.Table{}, errors.New("invalid syntax")
 			}
 			retError = fs.DeleteDB(db, config.Dir)
 		default:
@@ -75,81 +76,90 @@ func Post(query []string, table string, db string, config fs.Conf) (fs.Table, er
 	} else {
 		switch strings.ToLower(query[0]) {
 		case "show":
-			tbl, err := fs.GetTable(table, db, config.Dir)
+			data, err := fs.GetTable(tbl, db, config.Dir)
 			if err != nil {
-				return fs.Table{}, err
+				return table.Table{}, err
 			}
 			if len(query) == 1 { // Show entire table
-				retTable = tbl
+				retTable = data
 			} else if len(query) == 2 { // Show specific columns
-				retTable, retError = showTable(query[1], tbl, []string{})
+				retTable, retError = showTable(query[1], data, []string{})
 			} else if query[2] == "where" { // Show specific columns (with condition)
-				retTable, retError = showTable(query[1], tbl, query[3:])
+				retTable, retError = showTable(query[1], data, query[3:])
 			} else { // Invalid syntax
-				return fs.Table{}, errors.New("invalid syntax")
+				return table.Table{}, errors.New("invalid syntax")
 			}
 		case "create":
 			if len(query) > 1 {
-				retTable, retError = makeTableWithColumns(query[1:], table, db, config.Dir)
+				retTable, retError = makeTableWithColumns(query[1:], tbl, db, config.Dir)
 			} else {
-				retError = fs.NewTable(table, db, config.Dir)
+				retError = fs.AddTable(tbl, db, config.Dir)
 			}
 		case "move":
 			if len(query) != 2 {
-				return fs.Table{}, errors.New("invalid syntax")
+				return table.Table{}, errors.New("invalid syntax")
 			}
-			retError = fs.MoveTable(table, query[1], db, config.Dir)
+			retError = fs.MoveTable(tbl, query[1], db, config.Dir)
 		case "copy":
 			if len(query) != 2 {
-				return fs.Table{}, errors.New("invalid syntax")
+				return table.Table{}, errors.New("invalid syntax")
 			}
-			retError = fs.CopyTable(table, query[1], db, config.Dir)
+			retError = fs.CopyTable(tbl, query[1], db, config.Dir)
 		case "delete":
 			if len(query) != 1 {
-				return fs.Table{}, errors.New("invalid syntax")
+				return table.Table{}, errors.New("invalid syntax")
 			}
-			retError = fs.DeleteTable(table, db, config.Dir)
 		case "column":
 			if len(query) < 3 {
-				return fs.Table{}, errors.New("invalid syntax")
+				return table.Table{}, errors.New("invalid syntax")
 			}
 			switch query[1] {
 			case "show":
 				if len(query) != 3 {
-					return fs.Table{}, errors.New("invalid syntax")
+					return table.Table{}, errors.New("invalid syntax")
 				}
-				tbl, err := fs.GetTable(table, db, config.Dir)
+				data, err := fs.GetTable(tbl, db, config.Dir)
 				if err != nil {
-					return fs.Table{}, err
+					return table.Table{}, err
 				}
 				cols := strings.Split(query[2], ":")
-				retTable, err = retTable.SetColumns([]fs.Column{{Name: "Name", Type: "str", Default: nil}, {Name: "Type", Type: "str", Default: nil}, {Name: "Default", Type: "str", Default: nil}})
-				if err != nil {
-					return fs.Table{}, err
+				columns := []table.Column{{Name: "Name", Type: "str", Default: ""}, {Name: "Type", Type: "str", Default: ""}, {Name: "Default", Type: "str", Default: ""}}
+				for i := 0; i < len(columns); i++ {
+					err := data.AddColumn(columns[i])
+					if err != nil {
+						return table.Table{}, err
+					}
 				}
 				var indices []int
 				for i := 0; i < len(cols); i++ {
-					col := getColumnIndex(cols[i], tbl.GetColumns())
+					col := getColumnIndex(cols[i], data.GetColumns())
 					if col != -1 {
 						indices = append(indices, col)
 					}
 				}
-				var rows [][]any
 				for i := 0; i < len(indices); i++ {
-					col := tbl.GetColumns()[indices[i]]
-					rows = append(rows, []any{col.Name, col.Type, fmt.Sprint(col.Default)})
+					col := data.GetColumns()[indices[i]]
+					row := make(map[string]any)
+					rowData := []any{col.Name, col.Type, fmt.Sprint(col.Default)}
+					for j := 0; j < len(columns); j++ {
+						row[columns[j].Name] = rowData[j]
+					}
+					err := data.AddRow(row)
+					if err != nil {
+						return table.Table{}, err
+					}
 				}
-				retTable, retError = retTable.SetRows(rows)
+				retTable = data
 			case "create":
 				if len(query) != 3 {
-					return fs.Table{}, errors.New("invalid syntax")
+					return table.Table{}, errors.New("invalid syntax")
 				}
-				tbl, err := fs.GetTable(table, db, config.Dir)
+				data, err := fs.GetTable(tbl, db, config.Dir)
 				if err != nil {
-					return fs.Table{}, err
+					return table.Table{}, err
 				}
 				colSlice := strings.Split(query[2], ":")
-				col := fs.Column{}
+				col := table.Column{}
 				switch len(colSlice) {
 				case 2:
 					col.Name = colSlice[0]
@@ -159,79 +169,69 @@ func Post(query []string, table string, db string, config fs.Conf) (fs.Table, er
 					col.Type = colSlice[1]
 					col.Default = colSlice[2]
 				default:
-					return fs.Table{}, errors.New("invalid syntax")
+					return table.Table{}, errors.New("invalid syntax")
 				}
-				tbl, err = shared.AddColumn(col, tbl)
+				err = data.AddColumn(col)
 				if err != nil {
-					return fs.Table{}, err
+					return table.Table{}, err
 				}
-				err = fs.ModifyTable(tbl, table, db, config.Dir)
-				retTable, retError = tbl, err
-			case "move":
-				if len(query) != 4 {
-					return fs.Table{}, errors.New("invalid syntax")
+				err = fs.ModifyTable(data, tbl, db, config.Dir)
+				retTable, retError = data, err
+			case "set":
+				if len(query) != 5 {
+					return table.Table{}, errors.New("invalid syntax")
 				}
-				tbl, err := fs.GetTable(table, db, config.Dir)
-				if err != nil {
-					return fs.Table{}, err
+				switch query[2] {
+				case "name":
+					data, err := fs.GetTable(tbl, db, config.Dir)
+					if err != nil {
+						return table.Table{}, err
+					}
+					err = data.SetColumnName(query[3], query[4])
+				case "default":
+					data, err := fs.GetTable(tbl, db, config.Dir)
+					if err != nil {
+						return table.Table{}, err
+					}
+					err = data.SetColumnDefault(query[3], query[4])
+				default:
+					retError = errors.New("invalid syntax")
 				}
-				cols := tbl.GetColumns()
-				index := getColumnIndex(query[2], cols)
-				if index == -1 {
-					return fs.Table{}, errors.New(query[2] + " is not a valid column")
-				}
-				cols[index].Name = query[3]
-				tbl, err = tbl.SetColumns(cols)
-				if err != nil {
-					return fs.Table{}, err
-				}
-				retError = fs.ModifyTable(tbl, table, db, config.Dir)
 			case "copy":
 				if len(query) != 4 {
-					return fs.Table{}, errors.New("invalid syntax")
+					return table.Table{}, errors.New("invalid syntax")
 				}
-				tbl, err := fs.GetTable(table, db, config.Dir)
+				data, err := fs.GetTable(tbl, db, config.Dir)
 				if err != nil {
-					return fs.Table{}, err
+					return table.Table{}, err
 				}
-				cols := tbl.GetColumns()
-				index := getColumnIndex(query[2], cols)
-				if index == -1 {
-					return fs.Table{}, errors.New(query[2] + " is not a valid column")
+				col, err := data.GetColumn(query[2])
+				if err != nil {
+					return table.Table{}, err
 				}
-				col := cols[index]
 				col.Name = query[3]
-				cols = append(cols, col)
-				tbl, err = tbl.SetColumns(cols)
+				err = data.AddColumn(col)
 				if err != nil {
-					return fs.Table{}, err
+					return table.Table{}, err
 				}
-				rows := tbl.GetRows()
-				for i := 0; i < len(rows); i++ {
-					rows[i] = append(rows[i], rows[i][index])
-				}
-				tbl, err = tbl.SetRows(rows)
-				if err != nil {
-					return fs.Table{}, err
-				}
-				retError = fs.ModifyTable(tbl, table, db, config.Dir)
+
 			case "delete":
 				if len(query) != 3 {
-					return fs.Table{}, errors.New("invalid syntax")
+					return table.Table{}, errors.New("invalid syntax")
 				}
 				tbl, err := fs.GetTable(table, db, config.Dir)
 				if err != nil {
-					return fs.Table{}, err
+					return table.Table{}, err
 				}
 				cols := tbl.GetColumns()
 				index := getColumnIndex(query[2], cols)
 				if index == -1 {
-					return fs.Table{}, errors.New(query[2] + " is not a valid column")
+					return table.Table{}, errors.New(query[2] + " is not a valid column")
 				}
 				cols = append(cols[:index], cols[index+1:]...)
 				tbl, err = tbl.SetColumns(cols)
 				if err != nil {
-					return fs.Table{}, err
+					return table.Table{}, err
 				}
 				rows := tbl.GetRows()
 				for i := 0; i < len(rows); i++ {
@@ -239,7 +239,7 @@ func Post(query []string, table string, db string, config fs.Conf) (fs.Table, er
 				}
 				tbl, err = tbl.SetRows(rows)
 				if err != nil {
-					return fs.Table{}, err
+					return table.Table{}, err
 				}
 				retError = fs.ModifyTable(tbl, table, db, config.Dir)
 			default:
@@ -247,16 +247,16 @@ func Post(query []string, table string, db string, config fs.Conf) (fs.Table, er
 			}
 		case "row":
 			if len(query) < 3 {
-				return fs.Table{}, errors.New("invalid syntax")
+				return table.Table{}, errors.New("invalid syntax")
 			}
 			switch query[1] {
 			case "show":
 				if len(query) != 3 {
-					return fs.Table{}, errors.New("invalid syntax")
+					return table.Table{}, errors.New("invalid syntax")
 				}
 				tbl, err := fs.GetTable(table, db, config.Dir)
 				if err != nil {
-					return fs.Table{}, err
+					return table.Table{}, err
 				}
 				rows := tbl.GetRows()
 				indicesSlice := strings.Split(query[2], ":")
@@ -264,10 +264,10 @@ func Post(query []string, table string, db string, config fs.Conf) (fs.Table, er
 				for i := 0; i < len(indicesSlice); i++ {
 					index, err := strconv.Atoi(indicesSlice[i])
 					if err != nil {
-						return fs.Table{}, err
+						return table.Table{}, err
 					}
 					if index < 1 || index > len(rows) {
-						return fs.Table{}, errors.New("index " + indicesSlice[i] + " is out of range")
+						return table.Table{}, errors.New("index " + indicesSlice[i] + " is out of range")
 					}
 					indices = append(indices, index-1)
 				}
@@ -278,11 +278,11 @@ func Post(query []string, table string, db string, config fs.Conf) (fs.Table, er
 				retTable, retError = tbl.SetRows(rowsNew)
 			case "create":
 				if len(query) < 3 {
-					return fs.Table{}, errors.New("invalid syntax")
+					return table.Table{}, errors.New("invalid syntax")
 				}
 				tbl, err := fs.GetTable(table, db, config.Dir)
 				if err != nil {
-					return fs.Table{}, err
+					return table.Table{}, err
 				}
 				rows := tbl.GetRows()
 				rowSlice := strings.Split(query[2], ":")
@@ -294,42 +294,42 @@ func Post(query []string, table string, db string, config fs.Conf) (fs.Table, er
 				retTable, retError = tbl.SetRows(rows)
 			case "copy":
 				if len(query) < 3 {
-					return fs.Table{}, errors.New("invalid syntax")
+					return table.Table{}, errors.New("invalid syntax")
 				}
 				tbl, err := fs.GetTable(table, db, config.Dir)
 				if err != nil {
-					return fs.Table{}, err
+					return table.Table{}, err
 				}
 				rows := tbl.GetRows()
 				index, err := strconv.Atoi(query[2])
 				if err != nil {
-					return fs.Table{}, err
+					return table.Table{}, err
 				}
 				if index < 1 || index > len(rows) {
-					return fs.Table{}, errors.New("index " + query[2] + " is out of range")
+					return table.Table{}, errors.New("index " + query[2] + " is out of range")
 				}
 				rows = append(rows, rows[index-1])
 				retTable, retError = tbl.SetRows(rows)
 			case "delete":
 				if len(query) < 3 {
-					return fs.Table{}, errors.New("invalid syntax")
+					return table.Table{}, errors.New("invalid syntax")
 				}
 				tbl, err := fs.GetTable(table, db, config.Dir)
 				if err != nil {
-					return fs.Table{}, err
+					return table.Table{}, err
 				}
 				rows := tbl.GetRows()
 				index, err := strconv.Atoi(query[2])
 				if err != nil {
-					return fs.Table{}, err
+					return table.Table{}, err
 				}
 				if index < 1 || index > len(rows) {
-					return fs.Table{}, errors.New("index " + query[2] + " is out of range")
+					return table.Table{}, errors.New("index " + query[2] + " is out of range")
 				}
 				rows = append(rows[:index-1], rows[index:]...)
 				retTable, retError = tbl.SetRows(rows)
 			case "column": // Select cell
-				retTable, retError = fs.Table{}, errors.New("operations on cells not implemented yet")
+				retTable, retError = table.Table{}, errors.New("operations on cells not implemented yet")
 			default:
 				retError = errors.New("invalid syntax")
 			}
@@ -341,21 +341,21 @@ func Post(query []string, table string, db string, config fs.Conf) (fs.Table, er
 	return retTable, retError
 }
 
-func makeTableWithColumns(columns []string, table string, db string, dir string) (fs.Table, error) {
-	err := fs.NewTable(table, db, dir)
+func makeTableWithColumns(columns []string, table string, db string, dir string) (table.Table, error) {
+	err := fs.AddTable(table, db, dir)
 	if err != nil {
-		return fs.Table{}, err
+		return table.Table{}, err
 	}
 	tbl, err := shared.MakeTableWithColumns(columns)
 	if err != nil {
-		return fs.Table{}, err
+		return table.Table{}, err
 	}
 	err = fs.ModifyTable(tbl, table, db, dir)
 	return tbl, err
 }
 
 // Used to display names of databases or names of tables in a db
-func simpleTable(colName string, rows []string) (fs.Table, error) {
+func simpleTable(colName string, rows []string) (table.Table, error) {
 	columns := []fs.Column{{Name: colName, Type: "str"}}
 	rowSlice := make([][]interface{}, 0)
 	for _, row := range rows {
@@ -364,7 +364,7 @@ func simpleTable(colName string, rows []string) (fs.Table, error) {
 	return shared.MakeTable(columns, rowSlice)
 }
 
-func showTable(columns string, table fs.Table, condition []string) (fs.Table, error) {
+func showTable(columns string, table table.Table, condition []string) (table.Table, error) {
 	rows := make([]int, 0)
 	for i := 0; i < len(table.GetRows()); i++ {
 		rows = append(rows, i)
@@ -372,14 +372,14 @@ func showTable(columns string, table fs.Table, condition []string) (fs.Table, er
 	if len(condition) != 0 {
 		var indices []int
 		if (len(condition)+1)%4 != 0 {
-			return fs.Table{}, errors.New("invalid condition")
+			return table.Table{}, errors.New("invalid condition")
 		}
 		for i := 0; i < len(table.GetRows()); i++ {
 			var results []bool
 			for j := 0; j < (len(condition)+1)/4; j++ {
 				result, err := checkCondition(i, table, condition[j*4:3+j*4])
 				if err != nil {
-					return fs.Table{}, err
+					return table.Table{}, err
 				}
 				results = append(results, result)
 			}
@@ -396,13 +396,13 @@ func showTable(columns string, table fs.Table, condition []string) (fs.Table, er
 	colSlice := strings.Split(columns, ":")
 	cols, err := shared.SelectColumns(colSlice, table)
 	if err != nil {
-		return fs.Table{}, err
+		return table.Table{}, err
 	}
 	retTable, err := shared.MakeTableFromTable(cols, rows, table)
 	return retTable, err
 }
 
-func checkCondition(row int, table fs.Table, condition []string) (bool, error) {
+func checkCondition(row int, table table.Table, condition []string) (bool, error) {
 	if len(condition) != 3 {
 		return false, errors.New("invalid condition")
 	}
