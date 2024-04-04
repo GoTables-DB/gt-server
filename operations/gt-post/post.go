@@ -123,33 +123,30 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 					return table.Table{}, err
 				}
 				cols := strings.Split(query[2], ":")
+				tblNew := table.Table{}
 				columns := []table.Column{{Name: "Name", Type: "str", Default: ""}, {Name: "Type", Type: "str", Default: ""}, {Name: "Default", Type: "str", Default: ""}}
 				for i := 0; i < len(columns); i++ {
-					err := data.AddColumn(columns[i])
+					err := tblNew.AddColumn(columns[i])
 					if err != nil {
 						return table.Table{}, err
 					}
 				}
-				var indices []int
 				for i := 0; i < len(cols); i++ {
-					col := getColumnIndex(cols[i], data.GetColumns())
-					if col != -1 {
-						indices = append(indices, col)
+					col, err := data.GetColumn(cols[i])
+					if err != nil {
+						return table.Table{}, err
 					}
-				}
-				for i := 0; i < len(indices); i++ {
-					col := data.GetColumns()[indices[i]]
 					row := make(map[string]any)
 					rowData := []any{col.Name, col.Type, fmt.Sprint(col.Default)}
 					for j := 0; j < len(columns); j++ {
 						row[columns[j].Name] = rowData[j]
 					}
-					err := data.AddRow(row)
+					err = tblNew.AddRow(row)
 					if err != nil {
 						return table.Table{}, err
 					}
 				}
-				retTable = data
+				retTable = tblNew
 			case "create":
 				if len(query) != 3 {
 					return table.Table{}, errors.New("invalid syntax")
@@ -214,34 +211,20 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 				if err != nil {
 					return table.Table{}, err
 				}
-
+				retError = fs.ModifyTable(data, tbl, db, config.Dir)
 			case "delete":
 				if len(query) != 3 {
 					return table.Table{}, errors.New("invalid syntax")
 				}
-				tbl, err := fs.GetTable(table, db, config.Dir)
+				data, err := fs.GetTable(tbl, db, config.Dir)
 				if err != nil {
 					return table.Table{}, err
 				}
-				cols := tbl.GetColumns()
-				index := getColumnIndex(query[2], cols)
-				if index == -1 {
-					return table.Table{}, errors.New(query[2] + " is not a valid column")
-				}
-				cols = append(cols[:index], cols[index+1:]...)
-				tbl, err = tbl.SetColumns(cols)
+				err = data.DeleteColumn(query[2])
 				if err != nil {
 					return table.Table{}, err
 				}
-				rows := tbl.GetRows()
-				for i := 0; i < len(rows); i++ {
-					rows[i] = append(rows[i], rows[i][index])
-				}
-				tbl, err = tbl.SetRows(rows)
-				if err != nil {
-					return table.Table{}, err
-				}
-				retError = fs.ModifyTable(tbl, table, db, config.Dir)
+				retError = fs.ModifyTable(data, tbl, db, config.Dir)
 			default:
 				retError = errors.New("invalid syntax")
 			}
@@ -254,80 +237,83 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 				if len(query) != 3 {
 					return table.Table{}, errors.New("invalid syntax")
 				}
-				tbl, err := fs.GetTable(table, db, config.Dir)
+				data, err := fs.GetTable(tbl, db, config.Dir)
 				if err != nil {
 					return table.Table{}, err
 				}
-				rows := tbl.GetRows()
-				indicesSlice := strings.Split(query[2], ":")
-				indices := make([]int, 0)
-				for i := 0; i < len(indicesSlice); i++ {
-					index, err := strconv.Atoi(indicesSlice[i])
+				rowIndices := strings.Split(query[2], ":")
+				cols := data.GetColumns()
+				columnIndices := make([]int, 0)
+				for i := 0; i < len(cols); i++ {
+					columnIndices = append(columnIndices, i)
+				}
+				tblNew, err := shared.MakeTableFromTable(columnIndices, []int{}, data)
+				for i := 0; i < len(rowIndices); i++ {
+					index, err := strconv.Atoi(rowIndices[i])
 					if err != nil {
 						return table.Table{}, err
 					}
-					if index < 1 || index > len(rows) {
-						return table.Table{}, errors.New("index " + indicesSlice[i] + " is out of range")
+					row, err := data.GetRow(index)
+					if err != nil {
+						return table.Table{}, err
 					}
-					indices = append(indices, index-1)
+					err = tblNew.AddRow(row)
+					if err != nil {
+						return table.Table{}, err
+					}
 				}
-				rowsNew := make([][]any, 0)
-				for i := 0; i < len(indices); i++ {
-					rowsNew = append(rowsNew, rows[indices[i]])
-				}
-				retTable, retError = tbl.SetRows(rowsNew)
+				retTable = tblNew
 			case "create":
-				if len(query) < 3 {
-					return table.Table{}, errors.New("invalid syntax")
-				}
-				tbl, err := fs.GetTable(table, db, config.Dir)
+				data, err := fs.GetTable(tbl, db, config.Dir)
 				if err != nil {
 					return table.Table{}, err
 				}
-				rows := tbl.GetRows()
-				rowSlice := strings.Split(query[2], ":")
-				row := make([]any, 0)
-				for i := 0; i < len(rowSlice); i++ {
-					row = append(row, rowSlice[i])
+				rowSlice := make([][]string, 0)
+				for i := 2; i < len(query); i++ {
+					rowSlice = append(rowSlice, strings.Split(query[i], ":"))
+					if len(rowSlice[i]) != 2 {
+						return table.Table{}, errors.New("invalid syntax")
+					}
 				}
-				rows = append(rows, row)
-				retTable, retError = tbl.SetRows(rows)
+				row := map[string]any{}
+				for i := 0; i < len(rowSlice); i++ {
+					row[rowSlice[i][0]] = rowSlice[i][1]
+				}
+				err = data.AddRow(row)
+				if err != nil {
+					return table.Table{}, err
+				}
+				retTable, retError = data, fs.ModifyTable(data, tbl, db, config.Dir)
 			case "copy":
 				if len(query) < 3 {
 					return table.Table{}, errors.New("invalid syntax")
 				}
-				tbl, err := fs.GetTable(table, db, config.Dir)
+				data, err := fs.GetTable(tbl, db, config.Dir)
 				if err != nil {
 					return table.Table{}, err
 				}
-				rows := tbl.GetRows()
 				index, err := strconv.Atoi(query[2])
 				if err != nil {
 					return table.Table{}, err
 				}
-				if index < 1 || index > len(rows) {
-					return table.Table{}, errors.New("index " + query[2] + " is out of range")
+				row, err := data.GetRow(index)
+				if err != nil {
+					return table.Table{}, err
 				}
-				rows = append(rows, rows[index-1])
-				retTable, retError = tbl.SetRows(rows)
+				retTable, retError = data, data.AddRow(row)
 			case "delete":
 				if len(query) < 3 {
 					return table.Table{}, errors.New("invalid syntax")
 				}
-				tbl, err := fs.GetTable(table, db, config.Dir)
+				data, err := fs.GetTable(tbl, db, config.Dir)
 				if err != nil {
 					return table.Table{}, err
 				}
-				rows := tbl.GetRows()
 				index, err := strconv.Atoi(query[2])
 				if err != nil {
 					return table.Table{}, err
 				}
-				if index < 1 || index > len(rows) {
-					return table.Table{}, errors.New("index " + query[2] + " is out of range")
-				}
-				rows = append(rows[:index-1], rows[index:]...)
-				retTable, retError = tbl.SetRows(rows)
+				retTable, retError = data, data.DeleteRow(index)
 			case "column": // Select cell
 				retTable, retError = table.Table{}, errors.New("operations on cells not implemented yet")
 			default:
@@ -341,32 +327,72 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 	return retTable, retError
 }
 
-func makeTableWithColumns(columns []string, table string, db string, dir string) (table.Table, error) {
-	err := fs.AddTable(table, db, dir)
+func makeTableWithColumns(columns []string, tbl string, db string, dir string) (table.Table, error) {
+	err := fs.AddTable(tbl, db, dir)
 	if err != nil {
 		return table.Table{}, err
 	}
-	tbl, err := shared.MakeTableWithColumns(columns)
+	cols := make([]table.Column, 0)
+	for i, column := range columns {
+		col := table.Column{}
+		switch strings.Count(column, ":") {
+		case 0:
+			return table.Table{}, errors.New("need to specify datatype of column at index " + strconv.Itoa(i))
+		case 1:
+			colSplit := strings.Split(column, ":")
+			if len(colSplit) != 2 {
+				return table.Table{}, errors.New("internal server error")
+			}
+			col.Name = colSplit[0]
+			col.Type = colSplit[1]
+			col.Default = ""
+		case 2:
+			colSplit := strings.Split(column, ":")
+			if len(colSplit) != 3 {
+				return table.Table{}, errors.New("internal server error")
+			}
+			col.Name = colSplit[0]
+			col.Type = colSplit[1]
+			col.Default = colSplit[2]
+		default:
+			return table.Table{}, errors.New("illegal column at index " + strconv.Itoa(i))
+		}
+		cols = append(cols, col)
+	}
+	tblU := table.TableU{
+		Columns: cols,
+		Rows:    []map[string]any{},
+	}
+	data, err := tblU.ToT()
 	if err != nil {
 		return table.Table{}, err
 	}
-	err = fs.ModifyTable(tbl, table, db, dir)
-	return tbl, err
+	err = fs.ModifyTable(data, tbl, db, dir)
+	return data, err
 }
 
-// Used to display names of databases or names of tables in a db
-func simpleTable(colName string, rows []string) (table.Table, error) {
-	columns := []fs.Column{{Name: colName, Type: "str"}}
-	rowSlice := make([][]interface{}, 0)
-	for _, row := range rows {
-		rowSlice = append(rowSlice, []interface{}{row})
+// Used to display names of databases or of tables in a db
+func simpleTable(colName string, rowSlice []string) (table.Table, error) {
+	column := table.Column{Name: colName, Type: "str"}
+	data := table.Table{}
+	err := data.AddColumn(column)
+	if err != nil {
+		return table.Table{}, err
 	}
-	return shared.MakeTable(columns, rowSlice)
+	for i := 0; i < len(rowSlice); i++ {
+		row := make(map[string]any)
+		row[colName] = rowSlice[i]
+		err := data.AddRow(row)
+		if err != nil {
+			return table.Table{}, err
+		}
+	}
+	return data, nil
 }
 
-func showTable(columns string, table table.Table, condition []string) (table.Table, error) {
+func showTable(columns string, data table.Table, condition []string) (table.Table, error) {
 	rows := make([]int, 0)
-	for i := 0; i < len(table.GetRows()); i++ {
+	for i := 0; i < len(data.GetRows()); i++ {
 		rows = append(rows, i)
 	}
 	if len(condition) != 0 {
@@ -374,10 +400,10 @@ func showTable(columns string, table table.Table, condition []string) (table.Tab
 		if (len(condition)+1)%4 != 0 {
 			return table.Table{}, errors.New("invalid condition")
 		}
-		for i := 0; i < len(table.GetRows()); i++ {
+		for i := 0; i < len(data.GetRows()); i++ {
 			var results []bool
 			for j := 0; j < (len(condition)+1)/4; j++ {
-				result, err := checkCondition(i, table, condition[j*4:3+j*4])
+				result, err := checkCondition(i, data, condition[j*4:3+j*4])
 				if err != nil {
 					return table.Table{}, err
 				}
@@ -394,40 +420,42 @@ func showTable(columns string, table table.Table, condition []string) (table.Tab
 		rows = indices
 	}
 	colSlice := strings.Split(columns, ":")
-	cols, err := shared.SelectColumns(colSlice, table)
+	cols, err := shared.SelectColumns(colSlice, data)
 	if err != nil {
 		return table.Table{}, err
 	}
-	retTable, err := shared.MakeTableFromTable(cols, rows, table)
+	retTable, err := shared.MakeTableFromTable(cols, rows, data)
 	return retTable, err
 }
 
-func checkCondition(row int, table table.Table, condition []string) (bool, error) {
+func checkCondition(rowIndex int, data table.Table, condition []string) (bool, error) {
 	if len(condition) != 3 {
 		return false, errors.New("invalid condition")
 	}
-	cols := table.GetColumns()
-	rows := table.GetRows()
+	row, err := data.GetRow(rowIndex)
+	if err != nil {
+		return false, err
+	}
 	isVar := []bool{
 		strings.HasPrefix(condition[0], "\"") && strings.HasSuffix(condition[0], "\"") || strings.HasPrefix(condition[0], "'") && strings.HasSuffix(condition[0], "'"),
 		strings.HasPrefix(condition[2], "\"") && strings.HasSuffix(condition[2], "\"") || strings.HasPrefix(condition[2], "'") && strings.HasSuffix(condition[2], "'"),
 	}
 	var values []string
 	if !isVar[0] {
-		col := getColumnIndex(condition[0], cols)
-		if col == -1 {
+		col, err := data.GetColumn(condition[0])
+		if err != nil {
 			return false, errors.New("invalid condition: column " + condition[0] + " does not exist")
 		}
-		values = append(values, rows[row][col].(string))
+		values = append(values, row[col.Name].(string))
 	} else {
 		values = append(values, trim(condition[0]))
 	}
 	if !isVar[1] {
-		col := getColumnIndex(condition[2], cols)
-		if col == -1 {
+		col, err := data.GetColumn(condition[2])
+		if err != nil {
 			return false, errors.New("invalid condition: column " + condition[2] + " does not exist")
 		}
-		values = append(values, rows[row][col].(string))
+		values = append(values, row[col.Name].(string))
 	} else {
 		values = append(values, trim(condition[2]))
 	}
@@ -502,15 +530,6 @@ func checkResults(results []bool, operators []string) bool {
 		}
 	}
 	return false
-}
-
-func getColumnIndex(name string, cols []fs.Column) int {
-	for i := 0; i < len(cols); i++ {
-		if name == cols[i].Name {
-			return i
-		}
-	}
-	return -1
 }
 
 func trim(str string) string {

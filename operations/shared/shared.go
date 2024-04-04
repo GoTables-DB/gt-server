@@ -17,44 +17,6 @@ func MakeTable(columns []table.Column, rows []map[string]any) (table.Table, erro
 	return tbl, err
 }
 
-/*
-func MakeTableWithColumns(columns []string) (table.Table, error) {
-	cols := make([]table.Column, 0)
-	for i, column := range columns {
-		col := table.Column{}
-		switch strings.Count(column, ":") {
-		case 0:
-			return table.Table{}, errors.New("need to specify datatype of column at index " + strconv.Itoa(i))
-		case 1:
-			colSplit := strings.Split(column, ":")
-			if len(colSplit) != 2 {
-				return table.Table{}, errors.New("internal server error")
-			}
-			col.Name = colSplit[0]
-			col.Type = colSplit[1]
-			col.Default = ""
-		case 2:
-			colSplit := strings.Split(column, ":")
-			if len(colSplit) != 3 {
-				return table.Table{}, errors.New("internal server error")
-			}
-			col.Name = colSplit[0]
-			col.Type = colSplit[1]
-			col.Default = colSplit[2]
-		default:
-			return table.Table{}, errors.New("illegal column at index " + strconv.Itoa(i))
-		}
-		cols = append(cols, col)
-	}
-	tblU := table.TableU{
-		Columns: cols,
-		Rows:    []map[string]any{},
-	}
-	tbl, err := tblU.ToT()
-	return tbl, err
-}
-*/
-
 func MakeTableFromTable(columnIndices []int, rowIndices []int, tbl table.Table) (table.Table, error) {
 	if len(columnIndices) == 0 {
 		return table.Table{}, nil
