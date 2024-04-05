@@ -23,8 +23,8 @@ func Run(config fs.Conf) {
 		var tbl table.Table
 		var err error
 		q, err := query(r)
-		if err != nil {
-			respondError(w, errors.New("failed to read request body"))
+		if err != nil && r.Method == http.MethodPost {
+			respondError(w, errors.New("failed to read request body: "+err.Error()))
 		}
 		if checkSyntaxSQL(r) {
 			tbl, err = operations.SQLSyntax(r.Method, r.URL.Path, q, config)
