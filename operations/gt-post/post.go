@@ -229,7 +229,7 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 				retError = errors.New("invalid syntax")
 			}
 		case "row":
-			if len(query) < 3 {
+			if len(query) < 2 {
 				return table.Table{}, errors.New("invalid syntax")
 			}
 			switch query[1] {
@@ -271,7 +271,7 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 				rowSlice := make([][]string, 0)
 				for i := 2; i < len(query); i++ {
 					rowSlice = append(rowSlice, strings.Split(query[i], ":"))
-					if len(rowSlice[i]) != 2 {
+					if len(rowSlice[i-2]) != 2 {
 						return table.Table{}, errors.New("invalid syntax")
 					}
 				}
