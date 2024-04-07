@@ -7,19 +7,23 @@ import (
 )
 
 const (
-	CONFIG  = "" // Change this const to point to the config.json file if it is not in ~/.config/gotables/config.json
-	VERSION = "0.2.1"
+	Config         = "" // Change this const to point to the config.json file if it is not in ~/.config/gotables/config.json
+	Version        = "0.2.1"
+	CopyrightYear  = "2024"
+	CopyrightName  = "Jeroen Leuenberger"
+	CopyrightEmail = "jereileu@proton.me"
 )
 
 func main() {
 	// Load config.json
-	config, err := fs.Config(CONFIG)
+	config, err := fs.Config(Config)
 	if err != nil {
 		log.Fatal(err)
 	}
 	// Start server
 	go server.Run(config)
-	log.Println("==================== GoTables server " + VERSION + " ====================")
+	log.Println("==================== GoTables server " + Version + " ====================")
+	log.Println("Copyright © " + CopyrightYear + " " + CopyrightName + " <" + CopyrightEmail + ">")
 	if config.HTTPSMode {
 		log.Println("Started server at " + "https://127.0.0.1" + config.Port)
 	} else {
@@ -28,7 +32,7 @@ func main() {
 	log.Println("Logs are stored in " + config.LogDir)
 	log.Println("Press 'Ctrl' + 'C' to stop this program")
 	end := ""
-	for i := 0; i < 58+len(VERSION); i++ {
+	for i := 0; i < 58+len(Version); i++ {
 		end += "="
 	}
 	log.Println(end)
