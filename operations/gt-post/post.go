@@ -20,211 +20,66 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 	if db == "" {
 		switch strings.ToLower(query[0]) {
 		case "show":
-			if len(query) != 1 {
-				return table.Table{}, errors.New("invalid syntax")
-			}
-			dbs, err := fs.GetDBs(config.Dir)
-			if err != nil {
-				return table.Table{}, err
-			}
-			retTable, retError = simpleTable("Databases", dbs)
+			retTable, retError = rootShow(query, tbl, db, config)
 		case "user":
-			if len(query) != 0 {
-				return table.Table{}, errors.New("invalid syntax")
-			}
+			retTable, retError = rootUser(query, tbl, db, config)
 		case "backup":
-			if len(query) != 0 {
-				return table.Table{}, errors.New("invalid syntax")
-			}
+			retTable, retError = rootBackup(query, tbl, db, config)
 		default:
 			retError = errors.New("invalid syntax")
 		}
 	} else if tbl == "" {
 		switch strings.ToLower(query[0]) {
 		case "show":
-			if len(query) != 1 {
-				return table.Table{}, errors.New("invalid syntax")
-			}
-			tables, err := fs.GetTables(db, config.Dir)
-			if err != nil {
-				return table.Table{}, err
-			}
-			retTable, retError = simpleTable("Tables", tables)
+			retTable, retError = dbShow(query, tbl, db, config)
 		case "create":
-			if len(query) != 1 {
-				return table.Table{}, errors.New("invalid syntax")
-			}
-			retError = fs.AddDB(db, config.Dir)
+			retTable, retError = dbCreate(query, tbl, db, config)
 		case "move":
-			if len(query) != 2 {
-				return table.Table{}, errors.New("invalid syntax")
-			}
-			retError = fs.MoveDB(db, query[1], config.Dir)
+			retTable, retError = dbSetName(query, tbl, db, config)
 		case "copy":
-			if len(query) != 2 {
-				return table.Table{}, errors.New("invalid syntax")
-			}
-			retError = fs.CopyDB(db, query[1], config.Dir)
+			retTable, retError = dbCopy(query, tbl, db, config)
 		case "delete":
-			if len(query) != 1 {
-				return table.Table{}, errors.New("invalid syntax")
-			}
-			retError = fs.DeleteDB(db, config.Dir)
+			retTable, retError = dbDelete(query, tbl, db, config)
 		default:
 			retError = errors.New("invalid syntax")
 		}
 	} else {
 		switch strings.ToLower(query[0]) {
 		case "show":
-			data, err := fs.GetTable(tbl, db, config.Dir)
-			if err != nil {
-				return table.Table{}, err
-			}
-			if len(query) == 1 { // Show entire table
-				retTable = data
-			} else if len(query) == 2 { // Show specific columns
-				retTable, retError = showTable(query[1], data, []string{})
-			} else if query[2] == "where" { // Show specific columns (with condition)
-				retTable, retError = showTable(query[1], data, query[3:])
-			} else { // Invalid syntax
-				return table.Table{}, errors.New("invalid syntax")
-			}
+			retTable, retError = tableShow(query, tbl, db, config)
 		case "create":
-			if len(query) > 1 {
-				retTable, retError = makeTableWithColumns(query[1:], tbl, db, config.Dir)
-			} else {
-				retError = fs.AddTable(tbl, db, config.Dir)
-			}
+			retTable, retError = tableCreate(query, tbl, db, config)
 		case "move":
-			if len(query) != 2 {
-				return table.Table{}, errors.New("invalid syntax")
-			}
-			retError = fs.MoveTable(tbl, query[1], db, config.Dir)
+			retTable, retError = tableSetName(query, tbl, db, config)
 		case "copy":
-			if len(query) != 2 {
-				return table.Table{}, errors.New("invalid syntax")
-			}
-			retError = fs.CopyTable(tbl, query[1], db, config.Dir)
+			retTable, retError = tableCopy(query, tbl, db, config)
 		case "delete":
-			if len(query) != 1 {
-				return table.Table{}, errors.New("invalid syntax")
-			}
+			retTable, retError = tableDelete(query, tbl, db, config)
 		case "column":
 			if len(query) < 3 {
 				return table.Table{}, errors.New("invalid syntax")
 			}
 			switch query[1] {
 			case "show":
-				if len(query) != 3 {
-					return table.Table{}, errors.New("invalid syntax")
-				}
-				data, err := fs.GetTable(tbl, db, config.Dir)
-				if err != nil {
-					return table.Table{}, err
-				}
-				cols := strings.Split(query[2], ":")
-				tblNew := table.Table{}
-				columns := []table.Column{{Name: "Name", Type: "str", Default: ""}, {Name: "Type", Type: "str", Default: ""}, {Name: "Default", Type: "str", Default: ""}}
-				for i := 0; i < len(columns); i++ {
-					err := tblNew.AddColumn(columns[i])
-					if err != nil {
-						return table.Table{}, err
-					}
-				}
-				for i := 0; i < len(cols); i++ {
-					col, err := data.GetColumn(cols[i])
-					if err != nil {
-						return table.Table{}, err
-					}
-					row := make(map[string]any)
-					rowData := []any{col.Name, col.Type, fmt.Sprint(col.Default)}
-					for j := 0; j < len(columns); j++ {
-						row[columns[j].Name] = rowData[j]
-					}
-					err = tblNew.AddRow(row)
-					if err != nil {
-						return table.Table{}, err
-					}
-				}
-				retTable = tblNew
+				retTable, retError = columnShow(query, tbl, db, config)
 			case "create":
-				if len(query) != 3 {
-					return table.Table{}, errors.New("invalid syntax")
-				}
-				data, err := fs.GetTable(tbl, db, config.Dir)
-				if err != nil {
-					return table.Table{}, err
-				}
-				colSlice := strings.Split(query[2], ":")
-				col := table.Column{}
-				switch len(colSlice) {
-				case 2:
-					col.Name = colSlice[0]
-					col.Type = colSlice[1]
-				case 3:
-					col.Name = colSlice[0]
-					col.Type = colSlice[1]
-					col.Default = colSlice[2]
-				default:
-					return table.Table{}, errors.New("invalid syntax")
-				}
-				err = data.AddColumn(col)
-				if err != nil {
-					return table.Table{}, err
-				}
-				err = fs.ModifyTable(data, tbl, db, config.Dir)
-				retTable, retError = data, err
+				retTable, retError = columnCreate(query, tbl, db, config)
 			case "set":
 				if len(query) != 5 {
 					return table.Table{}, errors.New("invalid syntax")
 				}
 				switch query[2] {
 				case "name":
-					data, err := fs.GetTable(tbl, db, config.Dir)
-					if err != nil {
-						return table.Table{}, err
-					}
-					err = data.SetColumnName(query[3], query[4])
+					retTable, retError = columnSetName(query, tbl, db, config)
 				case "default":
-					data, err := fs.GetTable(tbl, db, config.Dir)
-					if err != nil {
-						return table.Table{}, err
-					}
-					err = data.SetColumnDefault(query[3], query[4])
+					retTable, retError = columnSetDefault(query, tbl, db, config)
 				default:
 					retError = errors.New("invalid syntax")
 				}
 			case "copy":
-				if len(query) != 4 {
-					return table.Table{}, errors.New("invalid syntax")
-				}
-				data, err := fs.GetTable(tbl, db, config.Dir)
-				if err != nil {
-					return table.Table{}, err
-				}
-				col, err := data.GetColumn(query[2])
-				if err != nil {
-					return table.Table{}, err
-				}
-				col.Name = query[3]
-				err = data.AddColumn(col)
-				if err != nil {
-					return table.Table{}, err
-				}
-				retError = fs.ModifyTable(data, tbl, db, config.Dir)
+				retTable, retError = tableCopy(query, tbl, db, config)
 			case "delete":
-				if len(query) != 3 {
-					return table.Table{}, errors.New("invalid syntax")
-				}
-				data, err := fs.GetTable(tbl, db, config.Dir)
-				if err != nil {
-					return table.Table{}, err
-				}
-				err = data.DeleteColumn(query[2])
-				if err != nil {
-					return table.Table{}, err
-				}
-				retError = fs.ModifyTable(data, tbl, db, config.Dir)
+				retTable, retError = tableDelete(query, tbl, db, config)
 			default:
 				retError = errors.New("invalid syntax")
 			}
@@ -234,88 +89,15 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 			}
 			switch query[1] {
 			case "show":
-				if len(query) != 3 {
-					return table.Table{}, errors.New("invalid syntax")
-				}
-				data, err := fs.GetTable(tbl, db, config.Dir)
-				if err != nil {
-					return table.Table{}, err
-				}
-				rowIndices := strings.Split(query[2], ":")
-				cols := data.GetColumns()
-				columnIndices := make([]int, 0)
-				for i := 0; i < len(cols); i++ {
-					columnIndices = append(columnIndices, i)
-				}
-				tblNew, err := shared.MakeTableFromTable(columnIndices, []int{}, data)
-				for i := 0; i < len(rowIndices); i++ {
-					index, err := strconv.Atoi(rowIndices[i])
-					if err != nil {
-						return table.Table{}, err
-					}
-					row, err := data.GetRow(index)
-					if err != nil {
-						return table.Table{}, err
-					}
-					err = tblNew.AddRow(row)
-					if err != nil {
-						return table.Table{}, err
-					}
-				}
-				retTable = tblNew
+				retTable, retError = rowShow(query, tbl, db, config)
 			case "create":
-				data, err := fs.GetTable(tbl, db, config.Dir)
-				if err != nil {
-					return table.Table{}, err
-				}
-				rowSlice := make([][]string, 0)
-				for i := 2; i < len(query); i++ {
-					rowSlice = append(rowSlice, strings.Split(query[i], ":"))
-					if len(rowSlice[i-2]) != 2 {
-						return table.Table{}, errors.New("invalid syntax")
-					}
-				}
-				row := map[string]any{}
-				for i := 0; i < len(rowSlice); i++ {
-					row[rowSlice[i][0]] = rowSlice[i][1]
-				}
-				err = data.AddRow(row)
-				if err != nil {
-					return table.Table{}, err
-				}
-				retTable, retError = data, fs.ModifyTable(data, tbl, db, config.Dir)
+				retTable, retError = rowCreate(query, tbl, db, config)
+			case "set": // Select cell
+				retTable, retError = rowSet(query, tbl, db, config)
 			case "copy":
-				if len(query) < 3 {
-					return table.Table{}, errors.New("invalid syntax")
-				}
-				data, err := fs.GetTable(tbl, db, config.Dir)
-				if err != nil {
-					return table.Table{}, err
-				}
-				index, err := strconv.Atoi(query[2])
-				if err != nil {
-					return table.Table{}, err
-				}
-				row, err := data.GetRow(index)
-				if err != nil {
-					return table.Table{}, err
-				}
-				retTable, retError = data, data.AddRow(row)
+				retTable, retError = rowCopy(query, tbl, db, config)
 			case "delete":
-				if len(query) < 3 {
-					return table.Table{}, errors.New("invalid syntax")
-				}
-				data, err := fs.GetTable(tbl, db, config.Dir)
-				if err != nil {
-					return table.Table{}, err
-				}
-				index, err := strconv.Atoi(query[2])
-				if err != nil {
-					return table.Table{}, err
-				}
-				retTable, retError = data, data.DeleteRow(index)
-			case "column": // Select cell
-				retTable, retError = table.Table{}, errors.New("operations on cells not implemented yet")
+				retTable, retError = rowDelete(query, tbl, db, config)
 			default:
 				retError = errors.New("invalid syntax")
 			}
@@ -323,8 +105,326 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 			retError = errors.New("invalid syntax")
 		}
 	}
-
 	return retTable, retError
+}
+
+func rootShow(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) != 1 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
+	dbs, err := fs.GetDBs(config.Dir)
+	if err != nil {
+		return table.Table{}, err
+	}
+	return simpleTable("Databases", dbs)
+}
+
+func rootUser(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	return table.Table{}, errors.New("users not implemented yet")
+}
+
+func rootBackup(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	return table.Table{}, errors.New("backups not implemented yet")
+}
+
+func dbShow(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) != 1 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
+	tables, err := fs.GetTables(db, config.Dir)
+	if err != nil {
+		return table.Table{}, err
+	}
+	return simpleTable("Tables", tables)
+}
+
+func dbCreate(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) != 1 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
+	return table.Table{}, fs.AddDB(db, config.Dir)
+}
+
+func dbSetName(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) != 2 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
+	return table.Table{}, fs.MoveDB(db, query[1], config.Dir)
+}
+
+func dbCopy(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) != 2 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
+	return table.Table{}, fs.CopyDB(db, query[1], config.Dir)
+}
+
+func dbDelete(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) != 1 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
+	return table.Table{}, fs.DeleteDB(db, config.Dir)
+}
+
+func tableShow(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	data, err := fs.GetTable(tbl, db, config.Dir)
+	if err != nil {
+		return table.Table{}, err
+	}
+	if len(query) == 1 { // Show entire table
+		return data, nil
+	} else if len(query) == 2 { // Show specific columns
+		return showTable(query[1], data, []string{})
+	} else if query[2] == "where" { // Show specific columns (with condition)
+		return showTable(query[1], data, query[3:])
+	} else { // Invalid syntax
+		return table.Table{}, errors.New("invalid syntax")
+	}
+}
+
+func tableCreate(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) > 1 {
+		return makeTableWithColumns(query[1:], tbl, db, config.Dir)
+	} else {
+		return table.Table{}, fs.AddTable(tbl, db, config.Dir)
+	}
+}
+
+func tableSetName(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) != 2 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
+	return table.Table{}, fs.RenameTable(tbl, query[1], db, config.Dir)
+}
+
+func tableCopy(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) != 2 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
+	return table.Table{}, fs.CopyTable(tbl, query[1], db, config.Dir)
+}
+
+func tableDelete(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) != 1 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
+	return table.Table{}, fs.DeleteTable(query[1], db, config.Dir)
+}
+
+func columnShow(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) != 3 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
+	data, err := fs.GetTable(tbl, db, config.Dir)
+	if err != nil {
+		return table.Table{}, err
+	}
+	cols := strings.Split(query[2], ":")
+	tblNew := table.Table{}
+	columns := []table.Column{{Name: "Name", Type: "str", Default: ""}, {Name: "Type", Type: "str", Default: ""}, {Name: "Default", Type: "str", Default: ""}}
+	for i := 0; i < len(columns); i++ {
+		err := tblNew.AddColumn(columns[i])
+		if err != nil {
+			return table.Table{}, err
+		}
+	}
+	for i := 0; i < len(cols); i++ {
+		col, err := data.GetColumn(cols[i])
+		if err != nil {
+			return table.Table{}, err
+		}
+		row := make(map[string]any)
+		rowData := []any{col.Name, col.Type, fmt.Sprint(col.Default)}
+		for j := 0; j < len(columns); j++ {
+			row[columns[j].Name] = rowData[j]
+		}
+		err = tblNew.AddRow(row)
+		if err != nil {
+			return table.Table{}, err
+		}
+	}
+	return tblNew, nil
+}
+
+func columnCreate(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) != 3 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
+	data, err := fs.GetTable(tbl, db, config.Dir)
+	if err != nil {
+		return table.Table{}, err
+	}
+	colSlice := strings.Split(query[2], ":")
+	col := table.Column{}
+	switch len(colSlice) {
+	case 2:
+		col.Name = colSlice[0]
+		col.Type = colSlice[1]
+	case 3:
+		col.Name = colSlice[0]
+		col.Type = colSlice[1]
+		col.Default = colSlice[2]
+	default:
+		return table.Table{}, errors.New("invalid syntax")
+	}
+	err = data.AddColumn(col)
+	if err != nil {
+		return table.Table{}, err
+	}
+	err = fs.ModifyTable(data, tbl, db, config.Dir)
+	return data, err
+}
+
+func columnSetName(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	data, err := fs.GetTable(tbl, db, config.Dir)
+	if err != nil {
+		return table.Table{}, err
+	}
+	err = data.SetColumnName(query[3], query[4])
+	if err != nil {
+		return table.Table{}, err
+	}
+	return table.Table{}, fs.ModifyTable(data, tbl, db, config.Dir)
+}
+
+func columnSetDefault(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	data, err := fs.GetTable(tbl, db, config.Dir)
+	if err != nil {
+		return table.Table{}, err
+	}
+	err = data.SetColumnDefault(query[3], query[4])
+	if err != nil {
+		return table.Table{}, err
+	}
+	return table.Table{}, fs.ModifyTable(data, tbl, db, config.Dir)
+}
+
+func columnCopy(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) != 4 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
+	data, err := fs.GetTable(tbl, db, config.Dir)
+	if err != nil {
+		return table.Table{}, err
+	}
+	col, err := data.GetColumn(query[2])
+	if err != nil {
+		return table.Table{}, err
+	}
+	col.Name = query[3]
+	err = data.AddColumn(col)
+	if err != nil {
+		return table.Table{}, err
+	}
+	return table.Table{}, fs.ModifyTable(data, tbl, db, config.Dir)
+}
+
+func columnDelete(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) != 3 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
+	data, err := fs.GetTable(tbl, db, config.Dir)
+	if err != nil {
+		return table.Table{}, err
+	}
+	err = data.DeleteColumn(query[2])
+	if err != nil {
+		return table.Table{}, err
+	}
+	return table.Table{}, fs.ModifyTable(data, tbl, db, config.Dir)
+}
+
+func rowShow(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) != 3 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
+	data, err := fs.GetTable(tbl, db, config.Dir)
+	if err != nil {
+		return table.Table{}, err
+	}
+	rowIndices := strings.Split(query[2], ":")
+	cols := data.GetColumns()
+	columnIndices := make([]int, 0)
+	for i := 0; i < len(cols); i++ {
+		columnIndices = append(columnIndices, i)
+	}
+	tblNew, err := shared.MakeTableFromTable(columnIndices, []int{}, data)
+	for i := 0; i < len(rowIndices); i++ {
+		index, err := strconv.Atoi(rowIndices[i])
+		if err != nil {
+			return table.Table{}, err
+		}
+		row, err := data.GetRow(index)
+		if err != nil {
+			return table.Table{}, err
+		}
+		err = tblNew.AddRow(row)
+		if err != nil {
+			return table.Table{}, err
+		}
+	}
+	return tblNew, nil
+}
+
+func rowCreate(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	data, err := fs.GetTable(tbl, db, config.Dir)
+	if err != nil {
+		return table.Table{}, err
+	}
+	rowSlice := make([][]string, 0)
+	for i := 2; i < len(query); i++ {
+		rowSlice = append(rowSlice, strings.Split(query[i], ":"))
+		if len(rowSlice[i-2]) != 2 {
+			return table.Table{}, errors.New("invalid syntax")
+		}
+	}
+	row := map[string]any{}
+	for i := 0; i < len(rowSlice); i++ {
+		row[rowSlice[i][0]] = rowSlice[i][1]
+	}
+	err = data.AddRow(row)
+	if err != nil {
+		return table.Table{}, err
+	}
+	return data, fs.ModifyTable(data, tbl, db, config.Dir)
+}
+
+func rowSet(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	return table.Table{}, errors.New("operations on cells not implemented yet")
+}
+
+func rowCopy(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) < 3 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
+	data, err := fs.GetTable(tbl, db, config.Dir)
+	if err != nil {
+		return table.Table{}, err
+	}
+	index, err := strconv.Atoi(query[2])
+	if err != nil {
+		return table.Table{}, err
+	}
+	row, err := data.GetRow(index)
+	if err != nil {
+		return table.Table{}, err
+	}
+	return data, data.AddRow(row)
+}
+
+func rowDelete(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) < 3 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
+	data, err := fs.GetTable(tbl, db, config.Dir)
+	if err != nil {
+		return table.Table{}, err
+	}
+	index, err := strconv.Atoi(query[2])
+	if err != nil {
+		return table.Table{}, err
+	}
+	return data, data.DeleteRow(index)
 }
 
 func makeTableWithColumns(columns []string, tbl string, db string, dir string) (table.Table, error) {

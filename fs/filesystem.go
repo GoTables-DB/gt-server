@@ -101,7 +101,7 @@ func CopyDB(oldName, name, dir string) error {
 	return err
 }
 
-func MoveTable(oldName, name, db, dir string) error {
+func RenameTable(oldName, name, db, dir string) error {
 	err := CopyTable(oldName, name, db, dir)
 	if err != nil {
 		return err
