@@ -292,7 +292,7 @@ func columnSetName(query []string, tbl string, db string, config fs.Conf) (table
 	if err != nil {
 		return table.Table{}, err
 	}
-	return table.Table{}, fs.ModifyTable(data, tbl, db, config.Dir)
+	return data, fs.ModifyTable(data, tbl, db, config.Dir)
 }
 
 func columnSetDefault(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
@@ -304,7 +304,7 @@ func columnSetDefault(query []string, tbl string, db string, config fs.Conf) (ta
 	if err != nil {
 		return table.Table{}, err
 	}
-	return table.Table{}, fs.ModifyTable(data, tbl, db, config.Dir)
+	return data, fs.ModifyTable(data, tbl, db, config.Dir)
 }
 
 func columnCopy(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
@@ -324,7 +324,7 @@ func columnCopy(query []string, tbl string, db string, config fs.Conf) (table.Ta
 	if err != nil {
 		return table.Table{}, err
 	}
-	return table.Table{}, fs.ModifyTable(data, tbl, db, config.Dir)
+	return data, fs.ModifyTable(data, tbl, db, config.Dir)
 }
 
 func columnDelete(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
@@ -339,7 +339,7 @@ func columnDelete(query []string, tbl string, db string, config fs.Conf) (table.
 	if err != nil {
 		return table.Table{}, err
 	}
-	return table.Table{}, fs.ModifyTable(data, tbl, db, config.Dir)
+	return data, fs.ModifyTable(data, tbl, db, config.Dir)
 }
 
 func rowShow(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
