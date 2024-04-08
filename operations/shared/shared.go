@@ -84,7 +84,7 @@ func AddDB(db, dir string) error {
 	}
 	for _, name := range dbs {
 		if db == name {
-			return errors.New("database already exists")
+			return errors.New("database does already exist")
 		}
 	}
 	return fs.AddDB(db, dir)
@@ -104,7 +104,7 @@ func AddTable(table, db, dir string) error {
 	}
 	for _, name := range tables {
 		if table == name {
-			return errors.New("table already exists")
+			return errors.New("table does already exist")
 		}
 	}
 	return fs.AddTable(table, db, dir)

@@ -91,7 +91,7 @@ func CopyDB(oldName, name, dir string) error {
 		return err
 	}
 	if exists {
-		return errors.New("database " + name + " already exists")
+		return errors.New("database " + name + " does already exist")
 	}
 	err = AddDB(name, dir)
 	if err != nil {
@@ -116,7 +116,7 @@ func CopyTable(oldName, name, db, dir string) error {
 		return err
 	}
 	if exists {
-		return errors.New("table" + name + " in database " + db + " already exists")
+		return errors.New("table " + name + " in database " + db + " does already exist")
 	}
 	err = AddTable(name, db, dir)
 	if err != nil {

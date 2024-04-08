@@ -154,10 +154,10 @@ func dbCreate(query []string, db string, config fs.Conf) (table.Table, error) {
 }
 
 func dbSetName(query []string, db string, config fs.Conf) (table.Table, error) {
-	if len(query) != 2 {
+	if len(query) != 3 {
 		return table.Table{}, errors.New("invalid syntax")
 	}
-	return table.Table{}, fs.RenameDB(db, query[1], config.Dir)
+	return table.Table{}, fs.RenameDB(db, query[2], config.Dir)
 }
 
 func dbCopy(query []string, db string, config fs.Conf) (table.Table, error) {
@@ -199,10 +199,10 @@ func tableCreate(query []string, tbl string, db string, config fs.Conf) (table.T
 }
 
 func tableSetName(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
-	if len(query) != 2 {
+	if len(query) != 3 {
 		return table.Table{}, errors.New("invalid syntax")
 	}
-	return table.Table{}, fs.RenameTable(tbl, query[1], db, config.Dir)
+	return table.Table{}, fs.RenameTable(tbl, query[2], db, config.Dir)
 }
 
 func tableCopy(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
