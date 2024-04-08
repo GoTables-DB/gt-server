@@ -80,9 +80,9 @@ func (t *Table) AddColumn(value Column) error {
 		return errors.New("invalid datatype")
 	}
 	t.columns = append(t.columns, value)
-	defaultValue := reflect.Zero(findDatatype(value.Type))
+	def := defaultValue(value.Type)
 	for i := 0; i < len(t.rows); i++ {
-		t.rows[i][value.Name] = defaultValue
+		t.rows[i][value.Name] = def
 	}
 	return nil
 }
@@ -163,6 +163,37 @@ func findDatatype(datatype string) reflect.Type {
 		ret = nil
 	}
 	return ret
+}
+
+func defaultValue(datatype string) any {
+	switch datatype {
+	// String
+	case "str":
+		var ret string
+		return ret
+	// Integer
+	case "int":
+		var ret int
+		return ret
+	// Float
+	case "flt":
+		var ret float64
+		return ret
+	// Boolean
+	case "bol":
+		var ret bool
+		return ret
+	// Date
+	case "dat":
+		var ret time.Time
+		return ret
+	// Table
+	case "tbl":
+		var ret Table
+		return ret
+	default:
+		return nil
+	}
 }
 
 func correctDatatype(data any, datatype string) bool {
