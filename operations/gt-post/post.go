@@ -20,34 +20,34 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 	if db == "" {
 		switch strings.ToLower(query[0]) {
 		case "show":
-			retTable, retError = rootShow(query, tbl, db, config)
+			retTable, retError = rootShow(query, config)
 		case "user":
-			retTable, retError = rootUser(query, tbl, db, config)
+			retError = errors.New("users not implemented yet")
 		case "backup":
-			retTable, retError = rootBackup(query, tbl, db, config)
+			retError = errors.New("backups not implemented yet")
 		default:
 			retError = errors.New("invalid syntax")
 		}
 	} else if tbl == "" {
 		switch strings.ToLower(query[0]) {
 		case "show":
-			retTable, retError = dbShow(query, tbl, db, config)
+			retTable, retError = dbShow(query, db, config)
 		case "create":
-			retTable, retError = dbCreate(query, tbl, db, config)
+			retTable, retError = dbCreate(query, db, config)
 		case "set":
 			if len(query) != 3 {
 				return table.Table{}, errors.New("invalid syntax")
 			}
 			switch strings.ToLower(query[1]) {
 			case "name":
-				retTable, retError = dbSetName(query, tbl, db, config)
+				retTable, retError = dbSetName(query, db, config)
 			default:
 				retError = errors.New("invalid syntax")
 			}
 		case "copy":
-			retTable, retError = dbCopy(query, tbl, db, config)
+			retTable, retError = dbCopy(query, db, config)
 		case "delete":
-			retTable, retError = dbDelete(query, tbl, db, config)
+			retTable, retError = dbDelete(query, db, config)
 		default:
 			retError = errors.New("invalid syntax")
 		}
@@ -93,9 +93,9 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 					retError = errors.New("invalid syntax")
 				}
 			case "copy":
-				retTable, retError = tableCopy(query, tbl, db, config)
+				retTable, retError = columnCopy(query, tbl, db, config)
 			case "delete":
-				retTable, retError = tableDelete(query, tbl, db, config)
+				retTable, retError = columnDelete(query, tbl, db, config)
 			default:
 				retError = errors.New("invalid syntax")
 			}
@@ -109,7 +109,7 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 			case "create":
 				retTable, retError = rowCreate(query, tbl, db, config)
 			case "set": // Select cell
-				retTable, retError = rowSet(query, tbl, db, config)
+				retError = errors.New("operations on cells not implemented yet")
 			case "copy":
 				retTable, retError = rowCopy(query, tbl, db, config)
 			case "delete":
@@ -124,7 +124,7 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 	return retTable, retError
 }
 
-func rootShow(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+func rootShow(query []string, config fs.Conf) (table.Table, error) {
 	if len(query) != 1 {
 		return table.Table{}, errors.New("invalid syntax")
 	}
@@ -135,15 +135,7 @@ func rootShow(query []string, tbl string, db string, config fs.Conf) (table.Tabl
 	return simpleTable("Databases", dbs)
 }
 
-func rootUser(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
-	return table.Table{}, errors.New("users not implemented yet")
-}
-
-func rootBackup(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
-	return table.Table{}, errors.New("backups not implemented yet")
-}
-
-func dbShow(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+func dbShow(query []string, db string, config fs.Conf) (table.Table, error) {
 	if len(query) != 1 {
 		return table.Table{}, errors.New("invalid syntax")
 	}
@@ -154,28 +146,28 @@ func dbShow(query []string, tbl string, db string, config fs.Conf) (table.Table,
 	return simpleTable("Tables", tables)
 }
 
-func dbCreate(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+func dbCreate(query []string, db string, config fs.Conf) (table.Table, error) {
 	if len(query) != 1 {
 		return table.Table{}, errors.New("invalid syntax")
 	}
 	return table.Table{}, fs.AddDB(db, config.Dir)
 }
 
-func dbSetName(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+func dbSetName(query []string, db string, config fs.Conf) (table.Table, error) {
 	if len(query) != 2 {
 		return table.Table{}, errors.New("invalid syntax")
 	}
 	return table.Table{}, fs.RenameDB(db, query[1], config.Dir)
 }
 
-func dbCopy(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+func dbCopy(query []string, db string, config fs.Conf) (table.Table, error) {
 	if len(query) != 2 {
 		return table.Table{}, errors.New("invalid syntax")
 	}
 	return table.Table{}, fs.CopyDB(db, query[1], config.Dir)
 }
 
-func dbDelete(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+func dbDelete(query []string, db string, config fs.Conf) (table.Table, error) {
 	if len(query) != 1 {
 		return table.Table{}, errors.New("invalid syntax")
 	}
@@ -224,7 +216,7 @@ func tableDelete(query []string, tbl string, db string, config fs.Conf) (table.T
 	if len(query) != 1 {
 		return table.Table{}, errors.New("invalid syntax")
 	}
-	return table.Table{}, fs.DeleteTable(query[1], db, config.Dir)
+	return table.Table{}, fs.DeleteTable(tbl, db, config.Dir)
 }
 
 func columnShow(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
@@ -403,10 +395,6 @@ func rowCreate(query []string, tbl string, db string, config fs.Conf) (table.Tab
 		return table.Table{}, err
 	}
 	return data, fs.ModifyTable(data, tbl, db, config.Dir)
-}
-
-func rowSet(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
-	return table.Table{}, errors.New("operations on cells not implemented yet")
 }
 
 func rowCopy(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
