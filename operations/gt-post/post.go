@@ -413,7 +413,11 @@ func rowCopy(query []string, tbl string, db string, config fs.Conf) (table.Table
 	if err != nil {
 		return table.Table{}, err
 	}
-	return data, data.AddRow(row)
+	err = data.AddRow(row)
+	if err != nil {
+		return table.Table{}, err
+	}
+	return data, fs.ModifyTable(data, tbl, db, config.Dir)
 }
 
 func rowDelete(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
@@ -428,7 +432,11 @@ func rowDelete(query []string, tbl string, db string, config fs.Conf) (table.Tab
 	if err != nil {
 		return table.Table{}, err
 	}
-	return data, data.DeleteRow(index)
+	err = data.DeleteRow(index)
+	if err != nil {
+		return table.Table{}, err
+	}
+	return data, fs.ModifyTable(data, tbl, db, config.Dir)
 }
 
 func makeTableWithColumns(columns []string, tbl string, db string, dir string) (table.Table, error) {
