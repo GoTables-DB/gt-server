@@ -6,6 +6,7 @@ import (
 	"git.jereileu.ch/gotables/server/gt-server/fs"
 	"git.jereileu.ch/gotables/server/gt-server/operations"
 	"git.jereileu.ch/gotables/server/gt-server/operations/shared"
+	"git.jereileu.ch/gotables/server/gt-server/table"
 	"io"
 	"log"
 	"net/http"
@@ -19,21 +20,21 @@ type body struct {
 
 func Run(config fs.Conf) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		var table fs.Table
+		var tbl table.Table
 		var err error
 		q, err := query(r)
-		if err != nil {
-			respondError(w, errors.New("failed to read request body"))
+		if err != nil && r.Method == http.MethodPost {
+			respondError(w, errors.New("failed to read request body: "+err.Error()))
 		}
 		if checkSyntaxSQL(r) {
-			table, err = operations.SQLSyntax(r.Method, r.URL.Path, q, config)
+			tbl, err = operations.SQLSyntax(r.Method, r.URL.Path, q, config)
 		} else {
-			table, err = operations.GTSyntax(r.Method, r.URL.Path, q, config)
+			tbl, err = operations.GTSyntax(r.Method, r.URL.Path, q, config)
 		}
 		if r.Method == http.MethodHead {
-			respond(w, false, table, err)
+			respond(w, false, tbl, err)
 		} else {
-			respond(w, true, table, err)
+			respond(w, true, tbl, err)
 		}
 	})
 	if config.HTTPSMode {
@@ -43,7 +44,7 @@ func Run(config fs.Conf) {
 	}
 }
 
-func respond(w http.ResponseWriter, body bool, table fs.Table, err error) {
+func respond(w http.ResponseWriter, body bool, table table.Table, err error) {
 	if err != nil {
 		respondError(w, err)
 	} else {
@@ -66,8 +67,8 @@ func checkSyntaxSQL(r *http.Request) bool {
 	return false
 }
 
-func respondTable(data fs.Table, w http.ResponseWriter, withBody bool) error {
-	jsonData := fs.Ttoj(data)
+func respondTable(data table.Table, w http.ResponseWriter, withBody bool) error {
+	jsonData := data.ToU()
 	body, err := json.Marshal(jsonData)
 	if err != nil {
 		return err
@@ -87,16 +88,18 @@ func respondTable(data fs.Table, w http.ResponseWriter, withBody bool) error {
 }
 
 func respondError(w http.ResponseWriter, err error) {
-	columns := []fs.Column{{Name: "Error", Type: "str"}}
-	rows := make([][]any, 0)
-	rows = append(rows, []any{err.Error()})
-	table, err := shared.MakeTable(columns, rows)
+	columns := []table.Column{{Name: "Error", Type: "str"}}
+	rows := make([]map[string]any, 0)
+	row := map[string]any{}
+	row["Error"] = err.Error()
+	rows = append(rows, row)
+	tbl, err := shared.MakeTable(columns, rows)
 	if err != nil {
 		w.WriteHeader(500)
 	} else {
 		// w.WriteHeader(err.Status)
 		w.WriteHeader(404)
-		tbl, err := json.Marshal(fs.Ttoj(table))
+		tbl, err := json.Marshal(tbl.ToU())
 		if err != nil {
 			w.WriteHeader(500)
 		}

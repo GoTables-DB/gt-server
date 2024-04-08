@@ -3,45 +3,50 @@ package gt_get
 import (
 	"git.jereileu.ch/gotables/server/gt-server/fs"
 	"git.jereileu.ch/gotables/server/gt-server/operations/shared"
+	"git.jereileu.ch/gotables/server/gt-server/table"
 )
 
-func Get(table string, db string, config fs.Conf) (fs.Table, error) {
-	retTable := fs.Table{}
+func Get(tbl string, db string, config fs.Conf) (table.Table, error) {
+	retTable := table.Table{}
 	var retError error = nil
 
 	if db == "" {
 		retTable, retError = getDBs(config.Dir)
-	} else if table == "" {
+	} else if tbl == "" {
 		retTable, retError = getTables(db, config.Dir)
 	} else {
-		retTable, retError = fs.GetTable(table, db, config.Dir)
+		retTable, retError = fs.GetTable(tbl, db, config.Dir)
 	}
 
 	return retTable, retError
 }
 
-func getDBs(dir string) (fs.Table, error) {
+func getDBs(dir string) (table.Table, error) {
 	dbs, err := fs.GetDBs(dir)
 	if err != nil {
-		return fs.Table{}, err
+		return table.Table{}, err
 	}
-	columns := []fs.Column{{Name: "Databases", Type: "str"}}
-	rows := make([][]any, 0)
+	columns := []table.Column{{Name: "Databases", Type: "str"}}
+	rows := make([]map[string]any, 0)
 	for _, db := range dbs {
-		rows = append(rows, []any{db})
+		row := map[string]any{}
+		row["Databases"] = db
+		rows = append(rows, row)
 	}
 	return shared.MakeTable(columns, rows)
 }
 
-func getTables(db string, dir string) (fs.Table, error) {
+func getTables(db string, dir string) (table.Table, error) {
 	tables, err := fs.GetTables(db, dir)
 	if err != nil {
-		return fs.Table{}, err
+		return table.Table{}, err
 	}
-	columns := []fs.Column{{Name: "Tables", Type: "str"}}
-	rows := make([][]any, 0)
-	for _, table := range tables {
-		rows = append(rows, []any{table})
+	columns := []table.Column{{Name: "Tables", Type: "str"}}
+	rows := make([]map[string]any, 0)
+	for _, tbl := range tables {
+		row := map[string]any{}
+		row["Tables"] = tbl
+		rows = append(rows, row)
 	}
 	return shared.MakeTable(columns, rows)
 }

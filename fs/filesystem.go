@@ -3,29 +3,11 @@ package fs
 import (
 	"encoding/json"
 	"errors"
+	"git.jereileu.ch/gotables/server/gt-server/table"
 	"log"
 	"os"
-	"reflect"
-	"strconv"
 	"strings"
-	"time"
 )
-
-type Column struct {
-	Name    string `json:"name"`
-	Type    string `json:"type"`
-	Default any    `json:"default"`
-}
-
-type TableJSON struct {
-	Columns []Column `json:"columns"`
-	Rows    [][]any  `json:"rows"`
-}
-
-type Table struct {
-	columns []Column
-	rows    [][]any
-}
 
 type Conf struct {
 	// Basic config
@@ -44,132 +26,14 @@ type Conf struct {
 	// MaxConnections int `json:"conn_max"`
 }
 
-func DetermineDatatype(datatype string) reflect.Type {
-	var ret reflect.Type
-	switch datatype {
-	// String
-	case "str":
-		ret = reflect.TypeOf("")
-	// Integer
-	case "int":
-		ret = reflect.TypeOf(0)
-	// Float
-	case "flt":
-		ret = reflect.TypeOf(0.0)
-	// Boolean
-	case "bol":
-		ret = reflect.TypeOf(false)
-	// Date
-	case "dat":
-		ret = reflect.TypeOf(time.Time{})
-	// Table
-	case "tbl":
-		ret = reflect.TypeOf(Table{})
-	default:
-		ret = nil
-	}
-	return ret
-}
-
-func DefaultValue(datatype string) any {
-	var ret any
-	switch datatype {
-	// String
-	case "str":
-		ret = ""
-	// Integer
-	case "int":
-		ret = 0
-	// Float
-	case "flt":
-		ret = 0.0
-	// Boolean
-	case "bol":
-		ret = false
-	// Date
-	case "dat":
-		ret = time.Time{}
-	// Table
-	case "tbl":
-		ret = Table{}
-	default:
-		ret = nil
-	}
-	return ret
-}
-
-/// Methods for Table ///
-
-func (t Table) GetColumns() []Column {
-	return t.columns
-}
-
-func (t Table) GetRows() [][]interface{} {
-	return t.rows
-}
-
-func (t Table) SetColumns(columns []Column) (Table, error) {
-	for i := 0; i < len(columns); i++ {
-		matches := 0
-		for j := 0; j < len(columns); j++ {
-			if columns[i].Name == columns[j].Name {
-				matches++
-			}
-		}
-		if matches != 1 {
-			return Table{}, errors.New("column names need to be unique")
-		}
-	}
-	t.columns = columns
-	return t, nil
-}
-
-func (t Table) SetRows(rows [][]interface{}) (Table, error) {
-	for i, row := range rows {
-		if len(row) != len(t.columns) {
-			return Table{}, errors.New("row length of row " + strconv.Itoa(i) + " is invalid")
-		}
-		for j, cell := range row {
-			if reflect.TypeOf(cell) != DetermineDatatype(t.columns[j].Type) {
-				return Table{}, errors.New("type of cell " + strconv.Itoa(j) + " in row " + strconv.Itoa(i) + " is invalid")
-			}
-		}
-	}
-	t.rows = rows
-	return t, nil
-}
-
-/// Convert between TableJSON and Table ///
-
-// Jtot - JSON to Table
-func Jtot(j TableJSON) (Table, error) {
-	t := Table{}
-	t, err := t.SetColumns(j.Columns)
-	if err != nil {
-		return Table{}, err
-	}
-	t, err = t.SetRows(j.Rows)
-	return t, err
-}
-
-// Ttoj - Table to JSON
-func Ttoj(t Table) TableJSON {
-	j := TableJSON{}
-	j.Columns = t.GetColumns()
-	j.Rows = t.GetRows()
-	return j
-}
-
-/// Read and write to filesystem ///
-
-func NewDB(name, dir string) error {
+func AddDB(name, dir string) error {
 	dbLocation := dir + "/" + name
 	err := os.Mkdir(dbLocation, 0755)
 	return err
 }
 
-func NewTable(name, db, dir string) error {
-	err := writeTable(Table{}, name, db, dir)
+func AddTable(name, db, dir string) error {
+	err := writeTable(table.Table{}, name, db, dir)
 	return err
 }
 
@@ -195,21 +59,21 @@ func GetTables(db, dir string) ([]string, error) {
 	return tables, err
 }
 
-func GetTable(name, db, dir string) (Table, error) {
+func GetTable(name, db, dir string) (table.Table, error) {
 	if name == "" {
-		return Table{}, errors.New("no table specified")
+		return table.Table{}, errors.New("no table specified")
 	}
 	tableFile, err := os.ReadFile(dir + "/" + db + "/" + name + ".json")
 	if err != nil {
-		return Table{}, errors.New("table " + name + " in database " + db + " could not be found")
+		return table.Table{}, errors.New("table " + name + " in database " + db + " could not be found")
 	}
-	tableData := TableJSON{}
+	tableData := table.TableU{}
 	err = json.Unmarshal(tableFile, &tableData)
 	if err != nil {
-		return Table{}, err
+		return table.Table{}, err
 	}
-	table, err := Jtot(tableData)
-	return table, err
+	tbl, err := tableData.ToT()
+	return tbl, err
 }
 
 func MoveDB(oldName, name, dir string) error {
@@ -229,7 +93,7 @@ func CopyDB(oldName, name, dir string) error {
 	if exists {
 		return errors.New("database " + name + " already exists")
 	}
-	err = NewDB(name, dir)
+	err = AddDB(name, dir)
 	if err != nil {
 		return err
 	}
@@ -254,7 +118,7 @@ func CopyTable(oldName, name, db, dir string) error {
 	if exists {
 		return errors.New("table" + name + " in database " + db + " already exists")
 	}
-	err = NewTable(name, db, dir)
+	err = AddTable(name, db, dir)
 	if err != nil {
 		return err
 	}
@@ -262,7 +126,7 @@ func CopyTable(oldName, name, db, dir string) error {
 	return err
 }
 
-func ModifyTable(data Table, name string, db string, dir string) error {
+func ModifyTable(data table.Table, name string, db string, dir string) error {
 	_, err := GetTable(name, db, dir)
 	if err != nil {
 		return err
@@ -353,8 +217,8 @@ func existsTable(name, db, dir string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	for _, table := range tables {
-		if table == name {
+	for _, tbl := range tables {
+		if tbl == name {
 			return true, nil
 		}
 	}
@@ -370,11 +234,11 @@ func cpTable(oldName, name, db, dir string) error {
 	return err
 }
 
-func writeTable(data Table, name string, db string, dir string) error {
+func writeTable(data table.Table, name string, db string, dir string) error {
 	tblLocation := dir + "/" + db + "/" + name + ".json"
-	tbl := TableJSON{
-		Columns: data.columns,
-		Rows:    data.rows,
+	tbl := table.TableU{
+		Columns: data.GetColumns(),
+		Rows:    data.GetRows(),
 	}
 	jsonData, jsonErr := json.Marshal(tbl)
 	if jsonErr != nil {

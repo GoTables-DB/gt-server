@@ -8,45 +8,37 @@ import (
 	"git.jereileu.ch/gotables/server/gt-server/operations/gt-post"
 	"git.jereileu.ch/gotables/server/gt-server/operations/gt-put"
 	"git.jereileu.ch/gotables/server/gt-server/operations/sql-post"
+	"git.jereileu.ch/gotables/server/gt-server/table"
 	"html"
-	"log"
 	"net/http"
 	"strings"
 )
 
-/// Incoming requests ///
-
-// Handle requests that use GoTables syntax
-
-func GTSyntax(method string, dir string, query string, config fs.Conf) (fs.Table, error) {
+func GTSyntax(method string, dir string, query string, config fs.Conf) (table.Table, error) {
 	if !config.EnableGTSyntax {
-		return fs.Table{}, errors.New("gotables syntax is disabled on the server")
+		return table.Table{}, errors.New("gotables syntax is disabled on the server")
 	}
 	querySlice := getQuerySlice(query)
-	table, db, err := dirSplit(dir)
+	tbl, db, err := dirSplit(dir)
 	if err != nil {
-		return fs.Table{}, err
+		return table.Table{}, err
 	}
-	retTable, retError := gtQuery(method, querySlice, table, db, config)
+	retTable, retError := gtQuery(method, querySlice, tbl, db, config)
 	return retTable, retError
 }
 
-// Handle requests that use SQL syntax
-
-func SQLSyntax(method string, dir string, query string, config fs.Conf) (fs.Table, error) {
+func SQLSyntax(method string, dir string, query string, config fs.Conf) (table.Table, error) {
 	if !config.EnableSQLSyntax {
-		return fs.Table{}, errors.New("sql syntax is disabled on the server")
+		return table.Table{}, errors.New("sql syntax is disabled on the server")
 	}
 	querySlice := getQuerySlice(query)
-	table, db, err := dirSplit(dir)
+	tbl, db, err := dirSplit(dir)
 	if err != nil {
-		return fs.Table{}, err
+		return table.Table{}, err
 	}
-	retTable, retError := sqlQuery(method, querySlice, table, db, config)
+	retTable, retError := sqlQuery(method, querySlice, tbl, db, config)
 	return retTable, retError
 }
-
-/// Request operations ///
 
 func dirSplit(dir string) (string, string, error) {
 	dir = strings.TrimPrefix(dir, "/")
@@ -71,57 +63,30 @@ func getQuerySlice(query string) []string {
 	return strings.Split(query, " ")
 }
 
-func gtQuery(method string, query []string, table string, db string, config fs.Conf) (fs.Table, error) {
-	retTable := fs.Table{}
+func gtQuery(method string, query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	retTable := table.Table{}
 	var retError error = nil
 	if method == http.MethodGet || method == http.MethodHead {
-		retTable, retError = gt_get.Get(table, db, config)
+		retTable, retError = gt_get.Get(tbl, db, config)
 	} else if method == http.MethodPut {
-		retTable, retError = gt_put.Put(table, db, config)
+		retTable, retError = gt_put.Put(tbl, db, config)
 	} else if method == http.MethodPost {
-		retTable, retError = gt_post.Post(query, table, db, config)
+		retTable, retError = gt_post.Post(query, tbl, db, config)
 	} else if method == http.MethodDelete {
-		retTable, retError = gt_del.Del(table, db, config)
+		retTable, retError = gt_del.Del(tbl, db, config)
 	} else {
-		return fs.Table{}, errors.New("invalid method")
+		return table.Table{}, errors.New("invalid method")
 	}
 	return retTable, retError
 }
 
-func sqlQuery(method string, query []string, table string, db string, config fs.Conf) (fs.Table, error) {
-	retTable := fs.Table{}
+func sqlQuery(method string, query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	retTable := table.Table{}
 	var retError error = nil
 	if method == http.MethodPost {
-		retTable, retError = sql_post.Post(query, table, db, config)
+		retTable, retError = sql_post.Post(query, tbl, db, config)
 	} else {
-		return fs.Table{}, errors.New("invalid method")
+		return table.Table{}, errors.New("invalid method")
 	}
 	return retTable, retError
-}
-
-/// Operations on db/tables ///
-
-func login() {
-
-}
-
-func logout() {
-
-}
-
-func checkDB(dbName string, config fs.Conf) (bool, error) {
-	if dbName == "" {
-		return false, errors.New("no database specified")
-	}
-	dbs, dbErr := fs.GetDBs(config.Dir)
-	if dbErr != nil {
-		log.Println(dbErr)
-		return false, dbErr
-	}
-	for _, db := range dbs {
-		if dbName == db {
-			return true, nil
-		}
-	}
-	return false, nil
 }
