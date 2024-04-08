@@ -76,7 +76,7 @@ func GetTable(name, db, dir string) (table.Table, error) {
 	return tbl, err
 }
 
-func MoveDB(oldName, name, dir string) error {
+func RenameDB(oldName, name, dir string) error {
 	err := CopyDB(oldName, name, dir)
 	if err != nil {
 		return err

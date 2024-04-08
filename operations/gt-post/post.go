@@ -34,8 +34,16 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 			retTable, retError = dbShow(query, tbl, db, config)
 		case "create":
 			retTable, retError = dbCreate(query, tbl, db, config)
-		case "move":
-			retTable, retError = dbSetName(query, tbl, db, config)
+		case "set":
+			if len(query) != 3 {
+				return table.Table{}, errors.New("invalid syntax")
+			}
+			switch strings.ToLower(query[1]) {
+			case "name":
+				retTable, retError = dbSetName(query, tbl, db, config)
+			default:
+				retError = errors.New("invalid syntax")
+			}
 		case "copy":
 			retTable, retError = dbCopy(query, tbl, db, config)
 		case "delete":
@@ -49,8 +57,16 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 			retTable, retError = tableShow(query, tbl, db, config)
 		case "create":
 			retTable, retError = tableCreate(query, tbl, db, config)
-		case "move":
-			retTable, retError = tableSetName(query, tbl, db, config)
+		case "set":
+			if len(query) != 3 {
+				return table.Table{}, errors.New("invalid syntax")
+			}
+			switch strings.ToLower(query[1]) {
+			case "name":
+				retTable, retError = tableSetName(query, tbl, db, config)
+			default:
+				retError = errors.New("invalid syntax")
+			}
 		case "copy":
 			retTable, retError = tableCopy(query, tbl, db, config)
 		case "delete":
@@ -149,7 +165,7 @@ func dbSetName(query []string, tbl string, db string, config fs.Conf) (table.Tab
 	if len(query) != 2 {
 		return table.Table{}, errors.New("invalid syntax")
 	}
-	return table.Table{}, fs.MoveDB(db, query[1], config.Dir)
+	return table.Table{}, fs.RenameDB(db, query[1], config.Dir)
 }
 
 func dbCopy(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
