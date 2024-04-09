@@ -35,7 +35,7 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 		case "create":
 			retTable, retError = dbCreate(query, db, config)
 		case "set":
-			if len(query) != 3 {
+			if len(query) < 3 {
 				return table.Table{}, errors.New("invalid syntax")
 			}
 			switch strings.ToLower(query[1]) {
@@ -58,7 +58,7 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 		case "create":
 			retTable, retError = tableCreate(query, tbl, db, config)
 		case "set":
-			if len(query) != 3 {
+			if len(query) < 3 {
 				return table.Table{}, errors.New("invalid syntax")
 			}
 			switch strings.ToLower(query[1]) {
@@ -81,9 +81,6 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 			case "create":
 				retTable, retError = columnCreate(query, tbl, db, config)
 			case "set":
-				if len(query) != 5 {
-					return table.Table{}, errors.New("invalid syntax")
-				}
 				switch query[2] {
 				case "name":
 					retTable, retError = columnSetName(query, tbl, db, config)
