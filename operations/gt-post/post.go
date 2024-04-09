@@ -109,7 +109,7 @@ func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, e
 			case "create":
 				retTable, retError = rowCreate(query, tbl, db, config)
 			case "set": // Select cell
-				retError = errors.New("operations on cells not implemented yet")
+				retTable, retError = rowSet(query, tbl, db, config)
 			case "copy":
 				retTable, retError = rowCopy(query, tbl, db, config)
 			case "delete":
@@ -391,6 +391,31 @@ func rowCreate(query []string, tbl string, db string, config fs.Conf) (table.Tab
 		row[rowSlice[i][0]] = rowSlice[i][1]
 	}
 	err = data.AddRow(row)
+	if err != nil {
+		return table.Table{}, err
+	}
+	return data, fs.ModifyTable(data, tbl, db, config.Dir)
+}
+
+func rowSet(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	data, err := fs.GetTable(tbl, db, config.Dir)
+	if err != nil {
+		return table.Table{}, err
+	}
+	indices := strings.Split(query[2], ":")
+	if len(indices) != 2 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
+	index, err := strconv.Atoi(indices[0])
+	if err != nil {
+		return table.Table{}, err
+	}
+	row, err := data.GetRow(index)
+	if err != nil {
+		return table.Table{}, err
+	}
+	row[indices[1]] = query[3]
+	err = data.SetRow(index, row)
 	if err != nil {
 		return table.Table{}, err
 	}
