@@ -284,6 +284,9 @@ func columnCreate(query []string, tbl string, db string, config fs.Conf) (table.
 }
 
 func columnSetName(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) != 5 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
 	data, err := fs.GetTable(tbl, db, config.Dir)
 	if err != nil {
 		return table.Table{}, err
@@ -296,6 +299,9 @@ func columnSetName(query []string, tbl string, db string, config fs.Conf) (table
 }
 
 func columnSetDefault(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) != 5 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
 	data, err := fs.GetTable(tbl, db, config.Dir)
 	if err != nil {
 		return table.Table{}, err
@@ -375,6 +381,9 @@ func rowShow(query []string, tbl string, db string, config fs.Conf) (table.Table
 }
 
 func rowCreate(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) < 2 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
 	data, err := fs.GetTable(tbl, db, config.Dir)
 	if err != nil {
 		return table.Table{}, err
@@ -398,6 +407,9 @@ func rowCreate(query []string, tbl string, db string, config fs.Conf) (table.Tab
 }
 
 func rowSet(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
+	if len(query) != 4 {
+		return table.Table{}, errors.New("invalid syntax")
+	}
 	data, err := fs.GetTable(tbl, db, config.Dir)
 	if err != nil {
 		return table.Table{}, err
@@ -423,7 +435,7 @@ func rowSet(query []string, tbl string, db string, config fs.Conf) (table.Table,
 }
 
 func rowCopy(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
-	if len(query) < 3 {
+	if len(query) != 3 {
 		return table.Table{}, errors.New("invalid syntax")
 	}
 	data, err := fs.GetTable(tbl, db, config.Dir)
@@ -446,7 +458,7 @@ func rowCopy(query []string, tbl string, db string, config fs.Conf) (table.Table
 }
 
 func rowDelete(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
-	if len(query) < 3 {
+	if len(query) != 3 {
 		return table.Table{}, errors.New("invalid syntax")
 	}
 	data, err := fs.GetTable(tbl, db, config.Dir)
