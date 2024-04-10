@@ -8,7 +8,7 @@ import (
 
 const (
 	Config         = "" // Change this const to point to the config.json file if it is not in ~/.config/gotables/config.json
-	Version        = "0.2.1"
+	Version        = "0.2.2"
 	CopyrightYear  = "2024"
 	CopyrightName  = "Jeroen Leuenberger"
 	CopyrightEmail = "jereileu@proton.me"
