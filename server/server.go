@@ -13,7 +13,7 @@ import (
 	"strconv"
 )
 
-type body struct {
+type Body struct {
 	Query     string `json:"query"`
 	SessionId string `json:"session_id"`
 }
@@ -24,7 +24,7 @@ func Run(config fs.Conf) {
 		var err error
 		q, err := query(r)
 		if err != nil && r.Method == http.MethodPost {
-			respondError(w, errors.New("failed to read request body: "+err.Error()))
+			respondError(w, errors.New("failed to read request Body: "+err.Error()))
 		}
 		if checkSyntaxSQL(r) {
 			tbl, err = operations.SQLSyntax(r.Method, r.URL.Path, q, config)
@@ -116,7 +116,7 @@ func query(r *http.Request) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	queryStruct := body{}
+	queryStruct := Body{}
 	err = json.Unmarshal(data, &queryStruct)
 	if err != nil {
 		return "", err
