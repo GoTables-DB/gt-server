@@ -23,7 +23,6 @@ func main() {
 		log.Fatal(err)
 	}
 	// Start server
-	go server.Run(config)
 	log.Println("==================== GoTables server " + Version + " ====================")
 	log.Println("Copyright © " + CopyrightYear + " " + CopyrightName + " <" + CopyrightEmail + ">")
 	if config.HTTPSMode {
@@ -39,7 +38,5 @@ func main() {
 	}
 	log.Println(end)
 	log.Println("")
-	for {
-
-	}
+	server.Run(config)
 }
