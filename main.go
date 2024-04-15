@@ -4,10 +4,11 @@ import (
 	"git.jereileu.ch/gotables/server/gt-server/fs"
 	"git.jereileu.ch/gotables/server/gt-server/server"
 	"log"
+	"os"
 )
 
 const (
-	Config         = "" // Change this const to point to the config.json file if it is not in ~/.config/gotables/config.json
+	ConfigEnvvar   = "GT_CONFIG"
 	Version        = "0.2.2"
 	CopyrightYear  = "2024"
 	CopyrightName  = "Jeroen Leuenberger"
@@ -16,7 +17,8 @@ const (
 
 func main() {
 	// Load config.json
-	config, err := fs.Config(Config)
+	location := os.Getenv(ConfigEnvvar)
+	config, err := fs.Config(location)
 	if err != nil {
 		log.Fatal(err)
 	}
