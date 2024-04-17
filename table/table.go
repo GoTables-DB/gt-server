@@ -144,11 +144,8 @@ func findDatatype(datatype string) reflect.Type {
 	// String
 	case "str":
 		ret = reflect.TypeOf("")
-	// Integer
-	case "int":
-		ret = reflect.TypeOf(0)
-	// Float
-	case "flt":
+	// Number
+	case "num", "int", "flt":
 		ret = reflect.TypeOf(0.0)
 	// Boolean
 	case "bol":
@@ -171,12 +168,8 @@ func defaultValue(datatype string) any {
 	case "str":
 		var ret string
 		return ret
-	// Integer
-	case "int":
-		var ret int
-		return ret
-	// Float
-	case "flt":
+	// Number
+	case "num", "int", "flt":
 		var ret float64
 		return ret
 	// Boolean
@@ -204,14 +197,9 @@ func correctDatatype(data any, datatype string) bool {
 		if datatype == "str" {
 			ret = true
 		}
-	// Integer
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-		if datatype == "int" {
-			ret = true
-		}
-	// Float
-	case float32, float64:
-		if datatype == "flt" {
+	// Number
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+		if datatype == "num" || datatype == "int" || datatype == "flt" {
 			ret = true
 		}
 	// Boolean

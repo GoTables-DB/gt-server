@@ -45,16 +45,16 @@ func dirSplit(dir string) (string, string, error) {
 	dir = strings.TrimSuffix(dir, "/")
 	dirSlice := strings.Split(dir, "/")
 	db := ""
-	table := ""
+	tbl := ""
 	if len(dirSlice) > 2 {
 		return "", "", errors.New("path too long")
 	} else if len(dirSlice) == 1 {
 		db = dirSlice[0]
 	} else {
 		db = dirSlice[0]
-		table = dirSlice[1]
+		tbl = dirSlice[1]
 	}
-	return table, db, nil
+	return tbl, db, nil
 }
 
 func getQuerySlice(query string) []string {

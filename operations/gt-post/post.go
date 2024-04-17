@@ -717,12 +717,8 @@ func convert(value string, datatype string) (any, error) {
 	// String
 	case "str":
 		return value, nil
-	// Integer
-	case "int":
-		ret, err := strconv.ParseInt(value, 10, 64)
-		return ret, err
-	// Float
-	case "flt":
+	// Number
+	case "num", "int", "flt":
 		ret, err := strconv.ParseFloat(value, 64)
 		return ret, err
 	// Boolean
