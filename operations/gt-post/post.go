@@ -360,6 +360,9 @@ func rowShow(query []string, tbl string, db string, config fs.Conf) (table.Table
 		columnIndices = append(columnIndices, i)
 	}
 	tblNew, err := shared.MakeTableFromTable(columnIndices, []int{}, data)
+	if err != nil {
+		return table.Table{}, err
+	}
 	for i := 0; i < len(rowIndices); i++ {
 		index, err := strconv.Atoi(rowIndices[i])
 		if err != nil {
