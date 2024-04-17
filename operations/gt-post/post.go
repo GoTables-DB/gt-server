@@ -8,6 +8,7 @@ import (
 	"git.jereileu.ch/gotables/server/gt-server/table"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func Post(query []string, tbl string, db string, config fs.Conf) (table.Table, error) {
@@ -397,7 +398,15 @@ func rowCreate(query []string, tbl string, db string, config fs.Conf) (table.Tab
 	}
 	row := map[string]any{}
 	for i := 0; i < len(rowSlice); i++ {
-		row[rowSlice[i][0]] = rowSlice[i][1]
+		col, err := data.GetColumn(rowSlice[i][0])
+		if err != nil {
+			return table.Table{}, err
+		}
+		cell, err := convert(rowSlice[i][1], col.Type)
+		if err != nil {
+			return table.Table{}, err
+		}
+		row[rowSlice[i][0]] = cell
 	}
 	err = data.AddRow(row)
 	if err != nil {
@@ -426,7 +435,15 @@ func rowSet(query []string, tbl string, db string, config fs.Conf) (table.Table,
 	if err != nil {
 		return table.Table{}, err
 	}
-	row[indices[1]] = query[3]
+	col, err := data.GetColumn(indices[1])
+	if err != nil {
+		return table.Table{}, err
+	}
+	cell, err := convert(query[3], col.Type)
+	if err != nil {
+		return table.Table{}, err
+	}
+	row[indices[1]] = cell
 	err = data.SetRow(index, row)
 	if err != nil {
 		return table.Table{}, err
@@ -693,4 +710,33 @@ func trim(str string) string {
 		str = strings.TrimSuffix(str, "'")
 	}
 	return str
+}
+
+func convert(value string, datatype string) (any, error) {
+	switch datatype {
+	// String
+	case "str":
+		return value, nil
+	// Integer
+	case "int":
+		ret, err := strconv.ParseInt(value, 10, 64)
+		return ret, err
+	// Float
+	case "flt":
+		ret, err := strconv.ParseFloat(value, 64)
+		return ret, err
+	// Boolean
+	case "bol":
+		ret, err := strconv.ParseBool(value)
+		return ret, err
+	// Date
+	case "dat":
+		ret, err := time.Parse(time.RFC3339, value)
+		return ret, err
+	// Table
+	case "tbl":
+		return nil, errors.New("not implemented yet")
+	default:
+		return nil, errors.New("invalid datatype")
+	}
 }

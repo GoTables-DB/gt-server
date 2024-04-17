@@ -205,7 +205,7 @@ func correctDatatype(data any, datatype string) bool {
 			ret = true
 		}
 	// Integer
-	case int:
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 		if datatype == "int" {
 			ret = true
 		}
