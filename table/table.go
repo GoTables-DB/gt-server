@@ -141,8 +141,8 @@ func getColumnIndex(name string, columns []Column) (int, error) {
 func findDatatype(datatype string) reflect.Type {
 	var ret reflect.Type
 	switch datatype {
-	// String
-	case "str":
+	// String, Table
+	case "str", "tbl":
 		ret = reflect.TypeOf("")
 	// Number
 	case "num", "int", "flt":
@@ -153,9 +153,6 @@ func findDatatype(datatype string) reflect.Type {
 	// Date
 	case "dat":
 		ret = reflect.TypeOf(time.Time{})
-	// Table
-	case "tbl":
-		ret = reflect.TypeOf(Table{})
 	default:
 		ret = nil
 	}
@@ -164,8 +161,8 @@ func findDatatype(datatype string) reflect.Type {
 
 func defaultValue(datatype string) any {
 	switch datatype {
-	// String
-	case "str":
+	// String, Table
+	case "str", "tbl":
 		var ret string
 		return ret
 	// Number
@@ -180,10 +177,6 @@ func defaultValue(datatype string) any {
 	case "dat":
 		var ret time.Time
 		return ret
-	// Table
-	case "tbl":
-		var ret Table
-		return ret
 	default:
 		return nil
 	}
@@ -192,9 +185,9 @@ func defaultValue(datatype string) any {
 func correctDatatype(data any, datatype string) bool {
 	var ret bool
 	switch data.(type) {
-	// String
+	// String, Table
 	case string:
-		if datatype == "str" {
+		if datatype == "str" || datatype == "tbl" {
 			ret = true
 		}
 	// Number
@@ -210,11 +203,6 @@ func correctDatatype(data any, datatype string) bool {
 	// Date
 	case time.Time:
 		if datatype == "dat" {
-			ret = true
-		}
-	// Table
-	case Table, TableU:
-		if datatype == "tbl" {
 			ret = true
 		}
 	default:
